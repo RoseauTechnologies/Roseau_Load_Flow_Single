@@ -47,6 +47,9 @@ repository = "https://github.com/RoseauTechnologies/Roseau_Load_Flow_Single/"
 issues = "https://github.com/RoseauTechnologies/Roseau_Load_Flow_Single/issues/"
 documentation = "https://roseau-load-flow.roseautechnologies.com/"
 
+[project.optional-dependencies]
+plot = ["matplotlib>=3.7.2"]
+graph = ["networkx>=3.0.0"]
 
 [build-system]
 requires = ["hatchling"]
