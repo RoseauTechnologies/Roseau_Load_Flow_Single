@@ -3,12 +3,12 @@ import logging
 from shapely.geometry.base import BaseGeometry
 
 from roseau.load_flow.exceptions import RoseauLoadFlowException, RoseauLoadFlowExceptionCode
+from roseau.load_flow.typing import Id, JsonDict
+from roseau.load_flow_engine.cy_engine import CySwitch
 from roseau.load_flow_single.models.branches import AbstractBranch
 from roseau.load_flow_single.models.buses import Bus
 from roseau.load_flow_single.models.core import Element
 from roseau.load_flow_single.models.sources import VoltageSource
-from roseau.load_flow.typing import Id, JsonDict
-from roseau.load_flow_engine.cy_engine import CySwitch
 
 logger = logging.getLogger(__name__)
 

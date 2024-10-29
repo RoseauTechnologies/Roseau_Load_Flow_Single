@@ -4,10 +4,10 @@ import numpy as np
 from shapely.geometry.base import BaseGeometry
 from typing_extensions import Self
 
-from roseau.load_flow_single.models.buses import Bus
-from roseau.load_flow_single.models.core import Element
 from roseau.load_flow.typing import Complex, ComplexArray, Id, JsonDict
 from roseau.load_flow.units import Q_, ureg_wraps
+from roseau.load_flow_single.models.buses import Bus
+from roseau.load_flow_single.models.core import Element
 
 logger = logging.getLogger(__name__)
 

@@ -8,10 +8,10 @@ from shapely.geometry.base import BaseGeometry
 from typing_extensions import Self
 
 from roseau.load_flow.exceptions import RoseauLoadFlowException, RoseauLoadFlowExceptionCode
-from roseau.load_flow_single.models.core import Element
 from roseau.load_flow.typing import ComplexArray, Id, JsonDict
 from roseau.load_flow.units import Q_, ureg_wraps
 from roseau.load_flow_engine.cy_engine import CyBus
+from roseau.load_flow_single.models.core import Element
 
 logger = logging.getLogger(__name__)
 

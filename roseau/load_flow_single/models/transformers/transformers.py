@@ -1,14 +1,14 @@
 import logging
 
-from roseau.load_flow import TransformerParameters
 from shapely.geometry.base import BaseGeometry
 
+from roseau.load_flow import TransformerParameters
 from roseau.load_flow.exceptions import RoseauLoadFlowException, RoseauLoadFlowExceptionCode
-from roseau.load_flow_single.models.branches import AbstractBranch
-from roseau.load_flow_single.models.buses import Bus
 from roseau.load_flow.typing import Id, JsonDict
 from roseau.load_flow.units import Q_, ureg_wraps
 from roseau.load_flow_engine.cy_engine import CySingleTransformer
+from roseau.load_flow_single.models.branches import AbstractBranch
+from roseau.load_flow_single.models.buses import Bus
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ class Transformer(AbstractBranch):
         self.tap = tap
         self._parameters = parameters
 
-        z2, ym, k, orientation = parameters._z2, parameters._ym, parameters._k, parameters._orientation
+        z2, ym, k = parameters._z2, parameters._ym, parameters._k
         self._cy_element = CySingleTransformer(z2=z2, ym=ym, k=k * tap)
         self._cy_connect()
 

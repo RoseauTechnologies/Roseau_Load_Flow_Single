@@ -14,6 +14,8 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 from pyproj import CRS
+from typing_extensions import Self
+
 from roseau.load_flow import CurrentLoad, ImpedanceLoad
 from roseau.load_flow._solvers import AbstractSolver
 from roseau.load_flow.exceptions import RoseauLoadFlowException, RoseauLoadFlowExceptionCode
@@ -30,7 +32,6 @@ from roseau.load_flow_single.models.lines import Line
 from roseau.load_flow_single.models.loads import AbstractLoad, PowerLoad
 from roseau.load_flow_single.models.sources import VoltageSource
 from roseau.load_flow_single.models.switches import Switch
-from typing_extensions import Self
 
 if TYPE_CHECKING:
     from networkx import Graph

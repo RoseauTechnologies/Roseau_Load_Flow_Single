@@ -4,12 +4,12 @@ import numpy as np
 from shapely.geometry.base import BaseGeometry
 
 from roseau.load_flow.exceptions import RoseauLoadFlowException, RoseauLoadFlowExceptionCode
-from roseau.load_flow_single.models.branches import AbstractBranch
-from roseau.load_flow_single.models.buses import Bus
-from roseau.load_flow_single.models.lines.parameters import LineParameters
 from roseau.load_flow.typing import Complex, ComplexArray, Id, JsonDict
 from roseau.load_flow.units import Q_, ureg_wraps
 from roseau.load_flow_engine.cy_engine import CyShuntLine, CySimplifiedLine
+from roseau.load_flow_single.models.branches import AbstractBranch
+from roseau.load_flow_single.models.buses import Bus
+from roseau.load_flow_single.models.lines.parameters import LineParameters
 
 logger = logging.getLogger(__name__)
 
