@@ -28,7 +28,7 @@ class VoltageSource(Element):
         id: Id,
         bus: Bus,
         *,
-        voltage: float,
+        voltage: Complex,
     ) -> None:
         """Voltage source constructor.
 
