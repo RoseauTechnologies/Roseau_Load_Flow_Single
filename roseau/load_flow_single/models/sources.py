@@ -5,7 +5,7 @@ from typing_extensions import Self
 
 from roseau.load_flow.exceptions import RoseauLoadFlowException, RoseauLoadFlowExceptionCode
 from roseau.load_flow.models.buses import Bus
-from roseau.load_flow.typing import Complex, ComplexArray, Id, JsonDict
+from roseau.load_flow.typing import Complex, Id, JsonDict
 from roseau.load_flow.units import Q_, ureg_wraps
 from roseau.load_flow_engine.cy_engine import CyVoltageSource
 from roseau.load_flow_single.models.core import Element
@@ -51,8 +51,8 @@ class VoltageSource(Element):
         self._cy_connect()
 
         # Results
-        self._res_currents: ComplexArray | None = None
-        self._res_potentials: ComplexArray | None = None
+        self._res_current: Complex | None = None
+        self._res_potential: Complex | None = None
 
     def __repr__(self) -> str:
         bus_id = self.bus.id if self.bus is not None else None
@@ -82,56 +82,55 @@ class VoltageSource(Element):
             self._cy_element.update_voltages([self._voltage])
 
     def _refresh_results(self) -> None:
-        self._res_currents = self._cy_element.get_currents(self._n)
-        self._res_potentials = self._cy_element.get_potentials(self._n)
+        self._res_current = self._cy_element.get_currents(self._n)[0]
+        self._res_potential = self._cy_element.get_potentials(self._n)[0]
 
-    def _res_currents_getter(self, warning: bool) -> ComplexArray:
+    def _res_current_getter(self, warning: bool) -> Complex:
         if self._fetch_results:
             self._refresh_results()
-        return self._res_getter(value=self._res_currents, warning=warning)
+        return self._res_getter(value=self._res_current, warning=warning)
 
     @property
     @ureg_wraps("A", (None,))
     def res_current(self) -> Q_[Complex]:
         """The load flow result of the source currents (A)."""
-        return self._res_currents_getter(warning=True)[0]
+        return self._res_current_getter(warning=True)
 
-    def _res_potentials_getter(self, warning: bool) -> ComplexArray:
+    def _res_potential_getter(self, warning: bool) -> Complex:
         if self._fetch_results:
             self._refresh_results()
-        return self._res_getter(value=self._res_potentials, warning=warning)
+        return self._res_getter(value=self._res_potential, warning=warning)
 
     @property
     @ureg_wraps("V", (None,))
     def res_potential(self) -> Q_[Complex]:  # TODO delete ?
         """The load flow result of the source potentials (V)."""
-        return self._res_potentials_getter(warning=True)[0]
+        return self._res_potential_getter(warning=True)
 
-    def _res_voltages_getter(self, warning: bool) -> ComplexArray:
-        potentials = self._res_potentials_getter(warning)
-        return np.array([potentials[0] - potentials[1]])
+    def _res_voltage_getter(self, warning: bool) -> Complex:
+        return self._res_potential_getter(warning)
 
     @property
     @ureg_wraps("V", (None,))
     def res_voltage(self) -> Q_[Complex]:
         """The load flow result of the source voltages (V)."""
-        return self._res_voltages_getter(warning=True)[0]
+        return self._res_voltage_getter(warning=True)
 
-    def _res_powers_getter(
-        self, warning: bool, currents: ComplexArray | None = None, potentials: ComplexArray | None = None
-    ) -> ComplexArray:
-        if currents is None:
-            currents = self._res_currents_getter(warning=warning)
+    def _res_power_getter(
+        self, warning: bool, current: Complex | None = None, potential: Complex | None = None
+    ) -> Complex:
+        if current is None:
+            current = self._res_current_getter(warning=warning)
             warning = False  # we warn only once
-        if potentials is None:
-            potentials = self._res_potentials_getter(warning=warning)
-        return potentials * currents.conj()
+        if potential is None:
+            potential = self._res_potential_getter(warning=warning)
+        return potential * current.conj()
 
     @property
     @ureg_wraps("VA", (None,))
     def res_power(self) -> Q_[Complex]:
         """The load flow result of the source powers (VA)."""
-        return self._res_powers_getter(warning=True)[0]
+        return self._res_power_getter(warning=True)
 
     def _cy_connect(self):
         connections = []
@@ -162,11 +161,11 @@ class VoltageSource(Element):
         voltage = data["voltage"][0] + 1j * data["voltage"][1]
         self = cls(id=data["id"], bus=data["bus"], voltage=voltage)
         if include_results and "results" in data:
-            self._res_currents = np.array(
-                [data["results"]["currents"][0] + 1j * data["results"]["currents"][1]], dtype=np.complex128
+            self._res_current = np.array(
+                [data["results"]["current"][0] + 1j * data["results"]["current"][1]], dtype=np.complex128
             )
-            self._res_potentials = np.array(
-                [complex(data["results"]["potentials"][0], data["results"]["potentials"][1])], dtype=np.complex128
+            self._res_potential = np.array(
+                [complex(data["results"]["potential"][0], data["results"]["potential"][1])], dtype=np.complex128
             )
             self._fetch_results = False
             self._no_results = False
@@ -180,21 +179,21 @@ class VoltageSource(Element):
             "voltage": [self._voltage.real, self._voltage.imag],
         }
         if include_results:
-            current = self._res_currents_getter(warning=True)[0]
+            current = self._res_current_getter(warning=True)
             res["results"] = {"current": [current.real, current.imag]}
-            potential = self._res_potentials_getter(warning=False)[0]
+            potential = self._res_potential_getter(warning=False)
             res["results"]["potential"] = [potential.real, potential.imag]
         return res
 
     def _results_to_dict(self, warning: bool, full: bool) -> JsonDict:
-        current = self._res_currents_getter(warning)[0]
+        current = self._res_current_getter(warning)
         results = {
             "id": self.id,
             "current": [current.real, current.imag],
         }
-        potential = self._res_potentials_getter(warning=False)[0]
+        potential = self._res_potential_getter(warning=False)
         results["potential"] = [potential.real, potential.imag]
         if full:
-            powers = self._res_powers_getter(warning=False, currents=current, potentials=potential)  # TODO
-            results["powers"] = [powers.real, powers.imag]
+            power = self._res_power_getter(warning=False, current=current, potential=potential)
+            results["power"] = [power.real, power.imag]
         return results

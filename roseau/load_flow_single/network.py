@@ -567,7 +567,7 @@ class ElectricalNetwork(JsonMixin):
         res_dict = {"bus_id": [], "potential": []}
         dtypes = {c: _DTYPES[c] for c in res_dict}
         for bus_id, bus in self.buses.items():
-            potential = bus._res_potentials_getter(warning=False)[0]
+            potential = bus._res_potential_getter(warning=False)
             res_dict["bus_id"].append(bus_id)
             res_dict["potential"].append(potential)
         return pd.DataFrame(res_dict).astype(dtypes).set_index("bus_id")
@@ -608,7 +608,7 @@ class ElectricalNetwork(JsonMixin):
                 max_voltage = float("nan")
             else:
                 voltage_limits_set = True
-            voltage = bus._res_voltages_getter(warning=False)[0]
+            voltage = bus._res_voltage_getter(warning=False)
             voltage_abs = abs(voltage)
             violated = (voltage_abs < min_voltage or voltage_abs > max_voltage) if voltage_limits_set else None
             voltages_dict["bus_id"].append(bus_id)
@@ -636,17 +636,17 @@ class ElectricalNetwork(JsonMixin):
                 second bus.
             - `potential1`: The complex potential of the first bus (in Volts).
             - `potential2`: The complex potential of the second bus (in Volts).
-            - `series_losses`: The complex power losses of the line (in VoltAmps)
+            - `series_loss`: The complex power losses of the line (in VoltAmps)
                 due to the series and mutual impedances.
             - `series_current`: The complex current in the series impedance of the line (in Amps).
 
         Additional information can be easily computed from this dataframe. For example:
 
         * To get the active power losses, use the real part of the complex power losses
-        * To get the total power losses, add the columns ``powers1 + powers2``
+        * To get the total power losses, add the columns ``power1 + power2``
         * To get the power losses in the shunt components of the line, subtract the series losses
           from the total power losses computed in the previous step:
-          ``(powers1 + powers2) - series_losses``
+          ``(power1 + power2) - series_loss``
         * To get the currents in the shunt components of the line:
           - For the first bus, subtract the columns ``current1 - series_current``
           - For the second bus, add the columns ``series_current + current2``
@@ -660,30 +660,30 @@ class ElectricalNetwork(JsonMixin):
             "power2": [],
             "potential1": [],
             "potential2": [],
-            "series_losses": [],
+            "series_loss": [],
             "series_current": [],
             "max_current": [],
             "violated": [],
         }
         dtypes = {c: _DTYPES[c] for c in res_dict}
         for line in self.lines.values():
-            currents1, currents2 = line._res_currents_getter(warning=False)
-            potentials1, potentials2 = line._res_potentials_getter(warning=False)
-            du_line, series_currents = line._res_series_values_getter(warning=False)
-            powers1 = potentials1 * currents1.conj()
-            powers2 = potentials2 * currents2.conj()
-            series_losses = du_line * series_currents.conj()
+            current1, current2 = line._res_currents_getter(warning=False)
+            potential1, potential2 = line._res_potentials_getter(warning=False)
+            du_line, series_current = line._res_series_values_getter(warning=False)
+            power1 = potential1 * current1.conj()
+            power2 = potential2 * current2.conj()
+            series_loss = du_line * series_current.conj()
             i_max = line.parameters._max_current
-            violated = None if i_max is None else (abs(currents1[0]) > i_max or abs(currents2[0]) > i_max)
+            violated = None if i_max is None else (abs(current1) > i_max or abs(current2) > i_max)
             res_dict["line_id"].append(line.id)
-            res_dict["current1"].append(currents1[0])
-            res_dict["current2"].append(currents2[0])
-            res_dict["power1"].append(powers1[0])
-            res_dict["power2"].append(powers2[0])
-            res_dict["potential1"].append(potentials1[0])
-            res_dict["potential2"].append(potentials2[0])
-            res_dict["series_losses"].append(series_losses[0])
-            res_dict["series_current"].append(series_currents[0])
+            res_dict["current1"].append(current1)
+            res_dict["current2"].append(current2)
+            res_dict["power1"].append(power1)
+            res_dict["power2"].append(power2)
+            res_dict["potential1"].append(potential1)
+            res_dict["potential2"].append(potential2)
+            res_dict["series_loss"].append(series_loss)
+            res_dict["series_current"].append(series_current)
             res_dict["max_current"].append(i_max)
             res_dict["violated"].append(violated)
         return pd.DataFrame(res_dict).astype(dtypes).set_index("line_id")
@@ -718,19 +718,19 @@ class ElectricalNetwork(JsonMixin):
         }
         dtypes = {c: _DTYPES[c] for c in res_dict}
         for transformer in self.transformers.values():
-            currents1, currents2 = transformer._res_currents_getter(warning=False)
-            potentials1, potentials2 = transformer._res_potentials_getter(warning=False)
-            powers1 = potentials1 * currents1.conj()
-            powers2 = potentials2 * currents2.conj()
+            current1, current2 = transformer._res_currents_getter(warning=False)
+            potential1, potential2 = transformer._res_potentials_getter(warning=False)
+            power1 = potential1 * current1.conj()
+            power2 = potential2 * current2.conj()
             s_max = transformer.parameters._max_power
-            violated = (abs(powers1.sum()) > s_max or abs(powers2.sum()) > s_max) if s_max is not None else None
+            violated = (abs(power1.sum()) > s_max or abs(power2.sum()) > s_max) if s_max is not None else None
             res_dict["transformer_id"].append(transformer.id)
-            res_dict["current1"].append(currents1[0])
-            res_dict["current2"].append(currents2[0])
-            res_dict["power1"].append(powers1[0])
-            res_dict["power2"].append(powers2[0])
-            res_dict["potential1"].append(potentials1[0])
-            res_dict["potential2"].append(potentials2[0])
+            res_dict["current1"].append(current1)
+            res_dict["current2"].append(current2)
+            res_dict["power1"].append(power1)
+            res_dict["power2"].append(power2)
+            res_dict["potential1"].append(potential1)
+            res_dict["potential2"].append(potential2)
             res_dict["max_power"].append(s_max)
             res_dict["violated"].append(violated)
         return pd.DataFrame(res_dict).astype(dtypes).set_index("transformer_id")
@@ -764,17 +764,17 @@ class ElectricalNetwork(JsonMixin):
         for switch in self.switches.values():
             if not isinstance(switch, Switch):
                 continue
-            currents1, currents2 = switch._res_currents_getter(warning=False)
-            potentials1, potentials2 = switch._res_potentials_getter(warning=False)
-            powers1 = potentials1 * currents1.conj()
-            powers2 = potentials2 * currents2.conj()
+            current1, current2 = switch._res_currents_getter(warning=False)
+            potential1, potential2 = switch._res_potentials_getter(warning=False)
+            power1 = potential1 * current1.conj()
+            power2 = potential2 * current2.conj()
             res_dict["switch_id"].append(switch.id)
-            res_dict["current1"].append(currents1[0])
-            res_dict["current2"].append(currents2[0])
-            res_dict["power1"].append(powers1[0])
-            res_dict["power2"].append(powers2[0])
-            res_dict["potential1"].append(potentials1[0])
-            res_dict["potential2"].append(potentials2[0])
+            res_dict["current1"].append(current1)
+            res_dict["current2"].append(current2)
+            res_dict["power1"].append(power1)
+            res_dict["power2"].append(power2)
+            res_dict["potential1"].append(potential1)
+            res_dict["potential2"].append(potential2)
         return pd.DataFrame(res_dict).astype(dtypes).set_index("switch_id")
 
     @property
@@ -794,14 +794,14 @@ class ElectricalNetwork(JsonMixin):
         res_dict = {"load_id": [], "type": [], "current": [], "power": [], "potential": []}
         dtypes = {c: _DTYPES[c] for c in res_dict} | {"type": LoadTypeDtype}
         for load_id, load in self.loads.items():
-            currents = load._res_currents_getter(warning=False)
-            potentials = load._res_potentials_getter(warning=False)
-            powers = potentials * currents.conj()
+            current = load._res_current_getter(warning=False)
+            potential = load._res_potential_getter(warning=False)
+            power = potential * current.conj()
             res_dict["load_id"].append(load_id)
             res_dict["type"].append(load.type)
-            res_dict["current"].append(currents[0])
-            res_dict["power"].append(powers[0])
-            res_dict["potential"].append(potentials[0])
+            res_dict["current"].append(current)
+            res_dict["power"].append(power)
+            res_dict["potential"].append(potential)
         return pd.DataFrame(res_dict).astype(dtypes).set_index("load_id")
 
     @property
@@ -819,10 +819,10 @@ class ElectricalNetwork(JsonMixin):
         voltages_dict = {"load_id": [], "type": [], "voltage": []}
         dtypes = {c: _DTYPES[c] for c in voltages_dict} | {"type": LoadTypeDtype}
         for load_id, load in self.loads.items():
-            voltage = load._res_voltages_getter(warning=False)
+            voltage = load._res_voltage_getter(warning=False)
             voltages_dict["load_id"].append(load_id)
             voltages_dict["type"].append(load.type)
-            voltages_dict["voltage"].append(voltage[0])
+            voltages_dict["voltage"].append(voltage)
         return pd.DataFrame(voltages_dict).astype(dtypes).set_index("load_id")
 
     @property
@@ -845,9 +845,9 @@ class ElectricalNetwork(JsonMixin):
         for load_id, load in self.loads.items():
             if not (isinstance(load, PowerLoad) and load.is_flexible):
                 continue
-            flexible_power = load._res_flexible_powers_getter(warning=False)
+            flexible_power = load._res_flexible_power_getter(warning=False)
             loads_dict["load_id"].append(load_id)
-            loads_dict["flexible_power"].append(flexible_power[0])
+            loads_dict["flexible_power"].append(flexible_power)
         return pd.DataFrame(loads_dict).astype(dtypes).set_index("load_id")
 
     @property
@@ -866,13 +866,13 @@ class ElectricalNetwork(JsonMixin):
         res_dict = {"source_id": [], "current": [], "power": [], "potential": []}
         dtypes = {c: _DTYPES[c] for c in res_dict}
         for source_id, source in self.sources.items():
-            currents = source._res_currents_getter(warning=False)
-            potentials = source._res_potentials_getter(warning=False)
-            powers = potentials * currents.conj()
+            current = source._res_current_getter(warning=False)
+            potential = source._res_potential_getter(warning=False)
+            power = potential * current.conj()
             res_dict["source_id"].append(source_id)
-            res_dict["current"].append(currents[0])
-            res_dict["power"].append(powers[0])
-            res_dict["potential"].append(potentials[0])
+            res_dict["current"].append(current)
+            res_dict["power"].append(power)
+            res_dict["potential"].append(potential)
         return pd.DataFrame(res_dict).astype(dtypes).set_index("source_id")
 
     #
@@ -1040,10 +1040,10 @@ class ElectricalNetwork(JsonMixin):
                 if e not in visited:
                     if isinstance(element, Transformer):
                         k = element.parameters._ulv / element.parameters._uhv
-                        new_potentials = potential.copy()
-                        for key, p in new_potentials.items():
-                            new_potentials[key] = p * k
-                        elements.append((e, new_potentials))
+                        new_potential = potential.copy()
+                        for key, p in new_potential.items():
+                            new_potential[key] = p * k
+                        elements.append((e, new_potential))
                     else:
                         elements.append((e, potential))
 

@@ -1,10 +1,9 @@
 import logging
 
-import numpy as np
 from shapely.geometry.base import BaseGeometry
 from typing_extensions import Self
 
-from roseau.load_flow.typing import Complex, ComplexArray, Id, JsonDict
+from roseau.load_flow.typing import Complex, Id, JsonDict
 from roseau.load_flow.units import Q_, ureg_wraps
 from roseau.load_flow_single.models.buses import Bus
 from roseau.load_flow_single.models.core import Element
@@ -44,7 +43,7 @@ class AbstractBranch(Element):
         self._bus2 = bus2
         self.geometry = geometry
         self._connect(bus1, bus2)
-        self._res_currents: tuple[ComplexArray, ComplexArray] | None = None
+        self._res_currents: tuple[Complex, Complex] | None = None
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__}: id={self.id!r}, bus1={self.bus1.id!r}, bus2={self.bus2.id!r}>"
@@ -59,66 +58,63 @@ class AbstractBranch(Element):
         """The second bus of the branch."""
         return self._bus2
 
-    def _res_currents_getter(self, warning: bool) -> tuple[ComplexArray, ComplexArray]:
+    def _res_currents_getter(self, warning: bool) -> tuple[Complex, Complex]:
         if self._fetch_results:
-            self._res_currents = self._cy_element.get_currents(1, 1)
+            cur1, cur2 = self._cy_element.get_currents(1, 1)
+            self._res_currents = cur1[0], cur2[0]
         return self._res_getter(value=self._res_currents, warning=warning)
 
     @property
     @ureg_wraps(("A", "A"), (None,))
     def res_current(self) -> tuple[Q_[Complex], Q_[Complex]]:
         """The load flow result of the branch currents (A)."""
-        currents1, currents2 = self._res_currents_getter(warning=True)
-        return currents1[0], currents2[0]
+        return self._res_currents_getter(warning=True)
 
     def _res_powers_getter(
         self,
         warning: bool,
-        potentials1: ComplexArray | None = None,
-        potentials2: ComplexArray | None = None,
-        currents1: ComplexArray | None = None,
-        currents2: ComplexArray | None = None,
-    ) -> tuple[ComplexArray, ComplexArray]:
-        if currents1 is None or currents2 is None:
-            currents1, currents2 = self._res_currents_getter(warning)
-        if potentials1 is None or potentials2 is None:
-            potentials1, potentials2 = self._res_potentials_getter(warning=False)  # we warn on the previous line
-        powers1 = potentials1 * currents1.conj()
-        powers2 = potentials2 * currents2.conj()
-        return powers1, powers2
+        potential1: Complex | None = None,
+        potential2: Complex | None = None,
+        current1: Complex | None = None,
+        current2: Complex | None = None,
+    ) -> tuple[Complex, Complex]:
+        if current1 is None or current2 is None:
+            current1, current2 = self._res_currents_getter(warning)
+        if potential1 is None or potential2 is None:
+            potential1, potential2 = self._res_potentials_getter(warning=False)  # we warn on the previous line
+        power1 = potential1 * current1.conj()
+        power2 = potential2 * current2.conj()
+        return power1, power2
 
     @property
     @ureg_wraps(("VA", "VA"), (None,))
-    def res_power(self) -> tuple[Q_[Complex], Q_[Complex]]:
+    def res_powers(self) -> tuple[Q_[Complex], Q_[Complex]]:
         """The load flow result of the branch powers (VA)."""
-        powers1, powers2 = self._res_powers_getter(warning=True)
-        return powers1[0], powers2[0]
+        return self._res_powers_getter(warning=True)
 
-    def _res_potentials_getter(self, warning: bool) -> tuple[ComplexArray, ComplexArray]:
-        pot1 = self.bus1._res_potentials_getter(warning=warning)
-        pot2 = self.bus2._res_potentials_getter(warning=False)  # we warn on the previous line
+    def _res_potentials_getter(self, warning: bool) -> tuple[Complex, Complex]:
+        pot1 = self.bus1._res_potential_getter(warning=warning)
+        pot2 = self.bus2._res_potential_getter(warning=False)  # we warn on the previous line
         return pot1, pot2
 
     @property
     @ureg_wraps(("V", "V"), (None,))
-    def res_potential(self) -> tuple[Q_[Complex], Q_[Complex]]:
+    def res_potentials(self) -> tuple[Q_[Complex], Q_[Complex]]:
         """The load flow result of the branch potentials (V)."""
-        pot1, pot2 = self._res_potentials_getter(warning=True)
-        return pot1[0], pot2[0]
+        return self._res_potentials_getter(warning=True)
 
     def _res_voltages_getter(
-        self, warning: bool, potentials1: ComplexArray | None = None, potentials2: ComplexArray | None = None
-    ) -> tuple[ComplexArray, ComplexArray]:
-        if potentials1 is None or potentials2 is None:
-            potentials1, potentials2 = self._res_potentials_getter(warning)
-        return np.array([potentials1[0] - potentials1[1]]), np.array([potentials2[0] - potentials2[1]])
+        self, warning: bool, potential1: Complex | None = None, potential2: Complex | None = None
+    ) -> tuple[Complex, Complex]:
+        if potential1 is None or potential2 is None:
+            potential1, potential2 = self._res_potentials_getter(warning)
+        return potential1, potential2
 
     @property
     @ureg_wraps(("V", "V"), (None,))
     def res_voltage(self) -> tuple[Q_[Complex], Q_[Complex]]:
         """The load flow result of the branch voltages (V)."""
-        voltages1, voltages2 = self._res_voltages_getter(warning=True)
-        return voltages1[0], voltages2[0]
+        return self._res_voltages_getter(warning=True)
 
     def _cy_connect(self) -> None:
         """Connect the Cython elements of the buses and the branch"""
@@ -144,9 +140,9 @@ class AbstractBranch(Element):
         if self.geometry is not None:
             res["geometry"] = self.geometry.__geo_interface__
         if include_results:
-            currents1, currents2 = self._res_currents_getter(warning=True)
+            current1, current2 = self._res_currents_getter(warning=True)
             res["results"] = {
-                "currents1": [currents1[0].real, currents1[0].imag],
-                "currents2": [currents2[0].real, currents2[0].imag],
+                "current1": [current1.real, current1.imag],
+                "current2": [current2.real, current2.imag],
             }
         return res

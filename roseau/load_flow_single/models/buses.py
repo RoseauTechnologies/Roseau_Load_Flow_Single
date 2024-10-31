@@ -8,7 +8,7 @@ from shapely.geometry.base import BaseGeometry
 from typing_extensions import Self
 
 from roseau.load_flow.exceptions import RoseauLoadFlowException, RoseauLoadFlowExceptionCode
-from roseau.load_flow.typing import ComplexArray, Id, JsonDict
+from roseau.load_flow.typing import Complex, Id, JsonDict
 from roseau.load_flow.units import Q_, ureg_wraps
 from roseau.load_flow_engine.cy_engine import CyBus
 from roseau.load_flow_single.models.core import Element
@@ -59,7 +59,7 @@ class Bus(Element):
         if max_voltage is not None:
             self.max_voltage = max_voltage
 
-        self._res_potentials: ComplexArray | None = None
+        self._res_potential: Complex | None = None
         self._short_circuits: list[dict[str, Any]] = []
 
         self._n = 2
@@ -72,7 +72,7 @@ class Bus(Element):
 
     @property
     @ureg_wraps("V", (None,))
-    def potential(self) -> Q_[ComplexArray]:
+    def potential(self) -> Q_[Complex]:
         """An array of initial potentials of the bus (V)."""
         return self._potential
 
@@ -86,27 +86,27 @@ class Bus(Element):
         if self._cy_element is not None:
             self._cy_element.initialize_potentials(np.array([self._potential, 0], dtype=np.complex128))
 
-    def _res_potentials_getter(self, warning: bool) -> ComplexArray:
+    def _res_potential_getter(self, warning: bool) -> Complex:
         if self._fetch_results:
-            self._res_potentials = self._cy_element.get_potentials(self._n)
-        return self._res_getter(value=self._res_potentials, warning=warning)
+            self._res_potential = self._cy_element.get_potentials(self._n)[0]
+        return self._res_getter(value=self._res_potential, warning=warning)
 
     @property
     @ureg_wraps("V", (None,))
-    def res_potential(self) -> Q_[float]:
+    def res_potential(self) -> Q_[Complex]:
         """The load flow result of the bus potentials (V)."""
-        return self._res_potentials_getter(warning=True)[0]
+        return self._res_potential_getter(warning=True)
 
-    def _res_voltages_getter(self, warning: bool, potentials: ComplexArray | None = None) -> ComplexArray:
-        if potentials is None:
-            potentials = np.array(self._res_potentials_getter(warning=warning))
-        return np.array([potentials[0] - potentials[1]])
+    def _res_voltage_getter(self, warning: bool, potential: Complex | None = None) -> Complex:
+        if potential is None:
+            potential = self._res_potential_getter(warning=warning)
+        return potential
 
     @property
     @ureg_wraps("V", (None,))
-    def res_voltage(self) -> Q_[complex]:
+    def res_voltage(self) -> Q_[Complex]:
         """The load flow result of the bus voltages (V)."""
-        return self._res_voltages_getter(warning=True)[0]
+        return self._res_voltage_getter(warning=True)
 
     @property
     def min_voltage(self) -> Q_[float] | None:
@@ -154,14 +154,14 @@ class Bus(Element):
         """
         if self._min_voltage is None and self._max_voltage is None:
             return None
-        voltages = abs(self._res_voltages_getter(warning=True))
+        voltage = abs(self._res_voltage_getter(warning=True))
         if self._min_voltage is None:
             assert self._max_voltage is not None
-            return float(max(voltages)) > self._max_voltage
+            return voltage > self._max_voltage
         elif self._max_voltage is None:
-            return float(min(voltages)) < self._min_voltage
+            return voltage < self._min_voltage
         else:
-            return float(min(voltages)) < self._min_voltage or float(max(voltages)) > self._max_voltage
+            return voltage < self._min_voltage or voltage > self._max_voltage
 
     def propagate_limits(self, force: bool = False) -> None:
         """Propagate the voltage limits to galvanically connected buses.
@@ -270,7 +270,7 @@ class Bus(Element):
             max_voltage=data.get("max_voltage"),
         )
         if include_results and "results" in data:
-            self._res_potentials = np.array(
+            self._res_potential = np.array(
                 [complex(data["results"]["potential"][0], data["results"]["potential"][1])], dtype=np.complex128
             )
             self._fetch_results = False
@@ -288,18 +288,17 @@ class Bus(Element):
         if self.max_voltage is not None:
             res["max_voltage"] = self.max_voltage.magnitude
         if include_results:
-            potentials = self._res_potentials_getter(warning=True)
-            res["results"] = {"potentials": [[v.real, v.imag] for v in potentials]}
+            potential = self._res_potential_getter(warning=True)
+            res["results"] = {"potential": [potential.real, potential.imag]}
         return res
 
     def _results_to_dict(self, warning: bool, full: bool) -> JsonDict:
-        potentials = np.array(self._res_potentials_getter(warning))
+        potential = self._res_potential_getter(warning)
         res = {
             "id": self.id,
-            "potential": [[v.real, v.imag] for v in potentials],
+            "potential": [potential.real, potential.imag],
         }
         if full:
-            res["voltages"] = [
-                [v.real, v.imag] for v in self._res_voltages_getter(warning=False, potentials=potentials)
-            ]
+            v = self._res_voltage_getter(warning=False, potential=potential)
+            res["voltages"] = [v.real, v.imag]
         return res

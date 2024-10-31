@@ -108,7 +108,7 @@ class Transformer(AbstractBranch):
     def res_power_losses(self) -> Q_[complex]:
         """Get the total power losses in the transformer (in VA)."""
         powers1, powers2 = self._res_powers_getter(warning=True)
-        return sum(powers1) + sum(powers2)
+        return powers1 + powers2
 
     @property
     def res_violated(self) -> bool | None:
@@ -134,32 +134,30 @@ class Transformer(AbstractBranch):
         return res
 
     def _results_to_dict(self, warning: bool, full: bool) -> JsonDict:
-        currents1, currents2 = self._res_currents_getter(warning)
+        current1, current2 = self._res_currents_getter(warning)
         results = {
             "id": self.id,
-            "currents1": [[i.real, i.imag] for i in currents1],
-            "currents2": [[i.real, i.imag] for i in currents2],
+            "current1": [current1.real, current1.imag],
+            "current2": [current2.real, current2.imag],
         }
         if full:
-            potentials1, potentials2 = self._res_potentials_getter(warning=False)
-            results["potentials1"] = [[v.real, v.imag] for v in potentials1]
-            results["potentials2"] = [[v.real, v.imag] for v in potentials2]
-            powers1, powers2 = self._res_powers_getter(
+            potential1, potential2 = self._res_potentials_getter(warning=False)
+            results["potential1"] = [potential1.real, potential1.imag]
+            results["potential2"] = [potential2.real, potential2.imag]
+            power1, power2 = self._res_powers_getter(
                 warning=False,
-                potentials1=potentials1,
-                potentials2=potentials2,
-                currents1=currents1,
-                currents2=currents2,
+                potential1=potential1,
+                potential2=potential2,
+                current1=current1,
+                current2=current2,
             )
-            results["powers1"] = [[s.real, s.imag] for s in powers1]
-            results["powers2"] = [[s.real, s.imag] for s in powers2]
-            voltages1, voltages2 = self._res_voltages_getter(
-                warning=False, potentials1=potentials1, potentials2=potentials2
-            )
-            results["voltages1"] = [[v.real, v.imag] for v in voltages1]
-            results["voltages2"] = [[v.real, v.imag] for v in voltages2]
+            results["power1"] = [power1.real, power1.imag]
+            results["power2"] = [power2.real, power2.imag]
+            voltage1, voltage2 = self._res_voltages_getter(warning=False, potential1=potential1, potential2=potential2)
+            results["voltage1"] = [voltage1.real, voltage1.imag]
+            results["voltage2"] = [voltage2.real, voltage2.imag]
 
-            power_losses = sum(powers1) + sum(powers2)
+            power_losses = power1 + power2
             results["power_losses"] = [power_losses.real, power_losses.imag]
 
         return results

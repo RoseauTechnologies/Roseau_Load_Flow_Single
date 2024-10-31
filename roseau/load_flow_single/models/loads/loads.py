@@ -5,14 +5,14 @@ from typing import ClassVar, Final, Literal
 import numpy as np
 
 from roseau.load_flow.exceptions import RoseauLoadFlowException, RoseauLoadFlowExceptionCode
-from roseau.load_flow.models.buses import Bus
 from roseau.load_flow.models.loads.flexible_parameters import FlexibleParameter
-from roseau.load_flow.typing import Complex, ComplexArray, Id, JsonDict
+from roseau.load_flow.typing import Complex, Id, JsonDict
 from roseau.load_flow.units import Q_, ureg_wraps
 from roseau.load_flow_engine.cy_engine import (
     CyFlexibleLoad,
     CyPowerLoad,
 )
+from roseau.load_flow_single.models.buses import Bus
 from roseau.load_flow_single.models.core import Element
 
 logger = logging.getLogger(__name__)
@@ -43,8 +43,8 @@ class AbstractLoad(Element, ABC):
         self._symbol = {"power": "S", "current": "I", "impedance": "Z"}[self.type]
 
         # Results
-        self._res_currents: ComplexArray | None = None
-        self._res_potentials: ComplexArray | None = None
+        self._res_current: Complex | None = None
+        self._res_potential: Complex | None = None
 
     def __repr__(self) -> str:
         bus_id = self.bus.id if self.bus is not None else None
@@ -61,19 +61,19 @@ class AbstractLoad(Element, ABC):
         return False
 
     def _refresh_results(self) -> None:
-        self._res_currents = self._cy_element.get_currents(self._n)
-        self._res_potentials = self._cy_element.get_potentials(self._n)
+        self._res_current = self._cy_element.get_currents(self._n)[0]
+        self._res_potential = self._cy_element.get_potentials(self._n)[0]
 
-    def _res_currents_getter(self, warning: bool) -> ComplexArray:
+    def _res_current_getter(self, warning: bool) -> Complex:
         if self._fetch_results:
             self._refresh_results()
-        return self._res_getter(value=self._res_currents, warning=warning)
+        return self._res_getter(value=self._res_current, warning=warning)
 
     @property
     @ureg_wraps("A", (None,))
     def res_current(self) -> Q_[Complex]:
         """The load flow result of the load currents (A)."""
-        return self._res_currents_getter(warning=True)[0]
+        return self._res_current_getter(warning=True)
 
     def _validate_value(self, value: Complex) -> Complex:
         # A load cannot have any zero impedance
@@ -83,36 +83,35 @@ class AbstractLoad(Element, ABC):
             raise RoseauLoadFlowException(msg=msg, code=RoseauLoadFlowExceptionCode.BAD_Z_VALUE)
         return value
 
-    def _res_potentials_getter(self, warning: bool) -> ComplexArray:
+    def _res_potential_getter(self, warning: bool) -> Complex:
         if self._fetch_results:
             self._refresh_results()
-        return self._res_getter(value=self._res_potentials, warning=warning)
+        return self._res_getter(value=self._res_potential, warning=warning)
 
-    def _res_voltages_getter(self, warning: bool) -> ComplexArray:
-        potentials = self._res_potentials_getter(warning)
-        return np.array([potentials[0] - potentials[1]])
+    def _res_voltage_getter(self, warning: bool) -> Complex:
+        return self._res_potential_getter(warning)
 
     @property
     @ureg_wraps("V", (None,))
     def res_voltage(self) -> Q_[Complex]:
         """The load flow result of the load voltages (V)."""
-        return self._res_voltages_getter(warning=True)[0]
+        return self._res_voltage_getter(warning=True)
 
-    def _res_powers_getter(
-        self, warning: bool, currents: ComplexArray | None = None, potentials: ComplexArray | None = None
-    ) -> ComplexArray:
-        if currents is None:
-            currents = self._res_currents_getter(warning=warning)
+    def _res_power_getter(
+        self, warning: bool, current: Complex | None = None, potential: Complex | None = None
+    ) -> Complex:
+        if current is None:
+            current = self._res_current_getter(warning=warning)
             warning = False  # we warn only one
-        if potentials is None:
-            potentials = self._res_potentials_getter(warning=warning)
-        return potentials * currents.conj()
+        if potential is None:
+            potential = self._res_potential_getter(warning=warning)
+        return potential * current.conj()
 
     @property
     @ureg_wraps("VA", (None,))
     def res_power(self) -> Q_[Complex]:
         """The load flow result of the "line powers" flowing into the load (VA)."""
-        return self._res_powers_getter(warning=True)[0]
+        return self._res_power_getter(warning=True)
 
     def _cy_connect(self):
         connections = []
@@ -170,16 +169,11 @@ class AbstractLoad(Element, ABC):
             logger.error(msg)
             raise RoseauLoadFlowException(msg=msg, code=RoseauLoadFlowExceptionCode.BAD_LOAD_TYPE)
         if include_results and "results" in data:
-            self._res_currents = np.array(
-                [complex(data["results"]["current"][0], data["results"]["current"][1])], dtype=np.complex128
-            )
-            self._res_potentials = np.array(
-                [complex(data["results"]["potential"][0], data["results"]["potential"][1])], dtype=np.complex128
-            )
-            if "flexible_powers" in data["results"]:
-                self._res_flexible_powers = np.array(
-                    [complex(data["results"]["flexible_power"][0], data["results"]["flexible_power"][1])],
-                    dtype=np.complex128,
+            self._res_current = complex(data["results"]["current"][0], data["results"]["current"][1])
+            self._res_potential = complex(data["results"]["potential"][0], data["results"]["potential"][1])
+            if "flexible_power" in data["results"]:
+                self._res_flexible_power = complex(
+                    data["results"]["flexible_power"][0], data["results"]["flexible_power"][1]
                 )
 
             self._fetch_results = False
@@ -196,24 +190,24 @@ class AbstractLoad(Element, ABC):
             f"{self.type}s": [complex_value.real, complex_value.imag],
         }
         if include_results:
-            currents = self._res_currents_getter(warning=True)
-            res["results"] = {"current": [[i.real, i.imag] for i in currents]}
-            potentials = self._res_potentials_getter(warning=True)
-            res["results"]["potential"] = [[v.real, v.imag] for v in potentials]
+            current = self._res_current_getter(warning=True)
+            res["results"] = {"current": [current.real, current.imag]}
+            potential = self._res_potential_getter(warning=True)
+            res["results"]["potential"] = [potential.real, potential.imag]
         return res
 
     def _results_to_dict(self, warning: bool, full: bool) -> JsonDict:
-        currents = self._res_currents_getter(warning)
+        current = self._res_current_getter(warning)
         results = {
             "id": self.id,
             "type": self.type,
-            "currents": [[i.real, i.imag] for i in currents],
+            "current": [current.real, current.imag],
         }
-        potentials = self._res_potentials_getter(warning=False)
-        results["potentials"] = [[v.real, v.imag] for v in potentials]
+        potential = self._res_potential_getter(warning=False)
+        results["potential"] = [potential.real, potential.imag]
         if full:
-            powers = self._res_powers_getter(warning=False, currents=currents, potentials=potentials)
-            results["powers"] = [[s.real, s.imag] for s in powers]
+            power = self._res_power_getter(warning=False, current=current, potential=potential)
+            results["power"] = [power.real, power.imag]
         return results
 
 
@@ -251,7 +245,7 @@ class PowerLoad(AbstractLoad):
 
         self._flexible_param = flexible_param
         self.power = power
-        self._res_flexible_powers: ComplexArray | None = None
+        self._res_flexible_power: Complex | None = None
 
         if self.is_flexible:
             cy_parameters = np.array([flexible_param._cy_fp])  # type: ignore
@@ -314,12 +308,12 @@ class PowerLoad(AbstractLoad):
     def _refresh_results(self) -> None:
         super()._refresh_results()
         if self.is_flexible:
-            self._res_flexible_powers = self._cy_element.get_powers(self._n)
+            self._res_flexible_power = self._cy_element.get_powers(self._n)[0]
 
-    def _res_flexible_powers_getter(self, warning: bool) -> ComplexArray:
+    def _res_flexible_power_getter(self, warning: bool) -> Complex:
         if self._fetch_results:
             self._refresh_results()
-        return self._res_getter(value=self._res_flexible_powers, warning=warning)
+        return self._res_getter(value=self._res_flexible_power, warning=warning)
 
     @property
     @ureg_wraps("VA", (None,))
@@ -337,7 +331,7 @@ class PowerLoad(AbstractLoad):
             msg = f"The load {self.id!r} is not flexible and does not have flexible powers"
             logger.error(msg)
             raise RoseauLoadFlowException(msg=msg, code=RoseauLoadFlowExceptionCode.BAD_LOAD_TYPE)
-        return self._res_flexible_powers_getter(warning=True)[0]
+        return self._res_flexible_power_getter(warning=True)
 
     #
     # Json Mixin interface
@@ -347,13 +341,13 @@ class PowerLoad(AbstractLoad):
         if self.flexible_param is not None:
             res["flexible_param"] = self.flexible_param.to_dict(include_results=include_results)
             if include_results:
-                power = self._res_flexible_powers_getter(warning=False)[0]
+                power = self._res_flexible_power_getter(warning=False)
                 res["results"]["flexible_power"] = [power.real, power.imag]
         return res
 
     def _results_to_dict(self, warning: bool, full: bool) -> JsonDict:
         if self.is_flexible:
-            power = self._res_flexible_powers_getter(warning=False)[0]
+            power = self._res_flexible_power_getter(warning=False)
             return {
                 **super()._results_to_dict(warning=warning, full=full),
                 "flexible_power": [power.real, power.imag],
