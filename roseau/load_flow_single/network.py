@@ -143,6 +143,8 @@ class ElectricalNetwork(JsonMixin):
                 self._ground.connect(line._cy_element, [(0, 2)])
 
         self._elements: list[Element] = []
+        self._has_loop = False
+        self._has_floating_neutral = False
         self._check_validity(constructed=False)
         self._create_network()
         self._valid = True
@@ -512,8 +514,7 @@ class ElectricalNetwork(JsonMixin):
             msg = f"The license cannot be validated. The detailed error message is {msg[2:]!r}"
             logger.error(msg)
             raise RoseauLoadFlowException(msg=msg, code=RoseauLoadFlowExceptionCode.LICENSE_ERROR) from e
-        else:
-            assert msg.startswith("1 ")
+        elif msg.startswith("1 "):
             msg = msg[2:]
             zero_elements_index, inf_elements_index = self._solver._cy_solver.analyse_jacobian()
             if zero_elements_index:
@@ -532,6 +533,10 @@ class ElectricalNetwork(JsonMixin):
                 )
             logger.error(msg)
             raise RoseauLoadFlowException(msg=msg, code=RoseauLoadFlowExceptionCode.BAD_JACOBIAN) from e
+        else:
+            assert msg.startswith("2 ")
+            msg = msg[2:]
+            raise RoseauLoadFlowException(msg=msg, code=RoseauLoadFlowExceptionCode.NO_BACKWARD_FORWARD) from e
 
     #
     # Properties to access the load flow results as dataframes
@@ -1025,13 +1030,13 @@ class ElectricalNetwork(JsonMixin):
 
     def _propagate_potentials(self) -> None:
         """Set the bus potentials that have not been initialized yet and compute self._elements order."""
-        starting_potential, starting_bus = self._get_potential()
-        elements = [(starting_bus, starting_potential)]
+        starting_potential, starting_source = self._get_potential()
+        elements = [(starting_source, starting_potential, None)]
         self._elements = []
-        visited = {starting_bus}
+        self._has_loop = False
+        visited = {starting_source}
         while elements:
-            element, potential = elements.pop(-1)
-            visited.add(element)
+            element, potential, parent = elements.pop(-1)
             self._elements.append(element)
             if isinstance(element, Bus) and not element._initialized:
                 element.potential = potential
@@ -1043,9 +1048,13 @@ class ElectricalNetwork(JsonMixin):
                         new_potential = potential.copy()
                         for key, p in new_potential.items():
                             new_potential[key] = p * k
-                        elements.append((e, new_potential))
+                        elements.append((e, new_potential, element))
+                        visited.add(e)
                     else:
-                        elements.append((e, potential))
+                        elements.append((e, potential, element))
+                        visited.add(e)
+                elif parent != e:
+                    self._has_loop = True
 
         if len(visited) < len(self.buses) + len(self.lines) + len(self.transformers) + len(self.switches) + len(
             self.loads
@@ -1053,7 +1062,12 @@ class ElectricalNetwork(JsonMixin):
             unconnected_elements = [
                 element
                 for element in chain(
-                    self.buses.values(), self.lines.values(), self.transformers.values(), self.switches.values()
+                    self.buses.values(),
+                    self.lines.values(),
+                    self.transformers.values(),
+                    self.switches.values(),
+                    self.loads.values(),
+                    self.sources.values(),
                 )
                 if element not in visited
             ]
@@ -1064,7 +1078,7 @@ class ElectricalNetwork(JsonMixin):
             logger.error(msg)
             raise RoseauLoadFlowException(msg=msg, code=RoseauLoadFlowExceptionCode.POORLY_CONNECTED_ELEMENT)
 
-    def _get_potential(self) -> tuple[complex, Bus]:
+    def _get_potential(self) -> tuple[complex, VoltageSource]:
         """Compute initial potentials from the voltages sources of the network, get also the starting source"""
         starting_source = None
         potential = None
@@ -1074,7 +1088,7 @@ class ElectricalNetwork(JsonMixin):
             starting_source = source
             potential = source_voltage
 
-        return potential, starting_source.bus
+        return potential, starting_source
 
     #
     # Network saving/loading
