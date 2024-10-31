@@ -67,28 +67,28 @@ class Line(AbstractBranch):
         self._cy_connect()
 
         # Cache values used in results calculations
-        self._z_line = parameters._z_line * self._length
-        self._y_shunt = parameters._y_shunt * self._length
-        self._z_line_inv = np.linalg.inv(self._z_line)
-        self._yg = self._y_shunt.sum(axis=1)  # y_ig = Y_ia + Y_ib + Y_ic + Y_in for i in {a, b, c, n}
+        self._z_line = parameters._z_line[0][0] * self._length
+        self._y_shunt = parameters._y_shunt[0][0] * self._length
+        self._z_line_inv = 1.0 / self._z_line
+        self._yg = self._y_shunt  # y_ig = Y_ia + Y_ib + Y_ic + Y_in for i in {a, b, c, n}
 
     def _update_internal_parameters(self, parameters: LineParameters, length: float) -> None:
         """Update the internal parameters of the line."""
         self._parameters = parameters
         self._length = length
 
-        self._z_line = parameters._z_line * length
-        self._y_shunt = parameters._y_shunt * length
-        self._z_line_inv = np.linalg.inv(self._z_line)
+        self._z_line = parameters._z_line[0][0] * length
+        self._y_shunt = parameters._y_shunt[0][0] * length
+        self._z_line_inv = 1.0 / self._z_line
         self._yg = self._y_shunt.sum(axis=1)
 
         if self._cy_element is not None:
             if self._parameters.with_shunt:
                 self._cy_element.update_line_parameters(
-                    y_shunt=self._y_shunt.reshape(1), z_line=self._z_line.reshape(1)
+                    y_shunt=np.array([self._y_shunt]), z_line=np.array([self._z_line])
                 )
             else:
-                self._cy_element.update_line_parameters(z_line=self._z_line.reshape(1))
+                self._cy_element.update_line_parameters(z_line=np.array([self._z_line]))
 
     @property
     @ureg_wraps("km", (None,))
@@ -166,7 +166,7 @@ class Line(AbstractBranch):
     def _res_series_values_getter(self, warning: bool) -> tuple[Complex, Complex]:
         pot1, pot2 = self._res_potentials_getter(warning)  # V
         du_line = pot1 - pot2
-        i_line = self._z_line_inv @ du_line  # Zₗ x Iₗ = ΔU -> I = Zₗ⁻¹ x ΔU
+        i_line = self._z_line_inv * du_line  # Zₗ x Iₗ = ΔU -> I = Zₗ⁻¹ x ΔU
         return du_line, i_line
 
     def _res_series_currents_getter(self, warning: bool) -> Complex:
@@ -194,8 +194,8 @@ class Line(AbstractBranch):
         pot1, pot2 = self._res_potentials_getter(warning)
         vg = 0j
         ig = self._yg * vg
-        i1_shunt = (self._y_shunt @ pot1 - ig) / 2
-        i2_shunt = (self._y_shunt @ pot2 - ig) / 2
+        i1_shunt = (self._y_shunt * pot1 - ig) / 2
+        i2_shunt = (self._y_shunt * pot2 - ig) / 2
         return pot1, pot2, i1_shunt, i2_shunt
 
     def _res_shunt_currents_getter(self, warning: bool) -> tuple[Complex, Complex]:

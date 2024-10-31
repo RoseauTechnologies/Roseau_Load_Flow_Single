@@ -660,7 +660,7 @@ class ElectricalNetwork(JsonMixin):
             "power2": [],
             "potential1": [],
             "potential2": [],
-            "series_loss": [],
+            "series_losses": [],
             "series_current": [],
             "max_current": [],
             "violated": [],
@@ -682,7 +682,7 @@ class ElectricalNetwork(JsonMixin):
             res_dict["power2"].append(power2)
             res_dict["potential1"].append(potential1)
             res_dict["potential2"].append(potential2)
-            res_dict["series_loss"].append(series_loss)
+            res_dict["series_losses"].append(series_loss)
             res_dict["series_current"].append(series_current)
             res_dict["max_current"].append(i_max)
             res_dict["violated"].append(violated)
