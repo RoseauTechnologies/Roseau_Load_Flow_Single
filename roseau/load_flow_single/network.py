@@ -8,6 +8,7 @@ import time
 import warnings
 from collections.abc import Mapping, Sized
 from itertools import chain
+from numbers import Complex
 from typing import TYPE_CHECKING, NoReturn, TypeVar
 
 import geopandas as gpd
@@ -18,11 +19,11 @@ from typing_extensions import Self
 
 from roseau.load_flow._solvers import AbstractSolver
 from roseau.load_flow.exceptions import RoseauLoadFlowException, RoseauLoadFlowExceptionCode
-from roseau.load_flow.io import network_from_dict, network_to_dict
 from roseau.load_flow.typing import Id, JsonDict, MapOrSeq, Solver
 from roseau.load_flow.utils import JsonMixin, _optional_deps
 from roseau.load_flow.utils.types import _DTYPES, LoadTypeDtype
 from roseau.load_flow_engine.cy_engine import CyElectricalNetwork, CyGround, CyPotentialRef
+from roseau.load_flow_single.io import network_from_dict, network_to_dict
 from roseau.load_flow_single.models import Transformer
 from roseau.load_flow_single.models.branches import AbstractBranch
 from roseau.load_flow_single.models.buses import Bus
@@ -1045,10 +1046,7 @@ class ElectricalNetwork(JsonMixin):
                 if e not in visited:
                     if isinstance(element, Transformer):
                         k = element.parameters._ulv / element.parameters._uhv
-                        new_potential = potential.copy()
-                        for key, p in new_potential.items():
-                            new_potential[key] = p * k
-                        elements.append((e, new_potential, element))
+                        elements.append((e, potential * k, element))  # TODO dephasage
                         visited.add(e)
                     else:
                         elements.append((e, potential, element))
@@ -1078,7 +1076,7 @@ class ElectricalNetwork(JsonMixin):
             logger.error(msg)
             raise RoseauLoadFlowException(msg=msg, code=RoseauLoadFlowExceptionCode.POORLY_CONNECTED_ELEMENT)
 
-    def _get_potential(self) -> tuple[complex, VoltageSource]:
+    def _get_potential(self) -> tuple[Complex, VoltageSource]:
         """Compute initial potentials from the voltages sources of the network, get also the starting source"""
         starting_source = None
         potential = None
