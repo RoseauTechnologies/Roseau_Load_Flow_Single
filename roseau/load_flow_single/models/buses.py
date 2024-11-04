@@ -270,9 +270,7 @@ class Bus(Element):
             max_voltage=data.get("max_voltage"),
         )
         if include_results and "results" in data:
-            self._res_potential = np.array(
-                [complex(data["results"]["potential"][0], data["results"]["potential"][1])], dtype=np.complex128
-            )
+            self._res_potential = complex(data["results"]["potential"][0], data["results"]["potential"][1])
             self._fetch_results = False
             self._no_results = False
         return self
@@ -300,5 +298,5 @@ class Bus(Element):
         }
         if full:
             v = self._res_voltage_getter(warning=False, potential=potential)
-            res["voltages"] = [v.real, v.imag]
+            res["voltage"] = [v.real, v.imag]
         return res

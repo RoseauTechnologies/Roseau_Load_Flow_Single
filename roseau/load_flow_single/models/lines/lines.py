@@ -51,6 +51,7 @@ class Line(AbstractBranch):
                 The geometry of the line i.e. the linestring.
         """
         self._initialized = False
+        self._with_shunt = parameters.with_shunt
         super().__init__(id=id, bus1=bus1, bus2=bus2, n=1, geometry=geometry)
         self.length = length
         self.parameters = parameters
@@ -85,10 +86,11 @@ class Line(AbstractBranch):
         if self._cy_element is not None:
             if self._parameters.with_shunt:
                 self._cy_element.update_line_parameters(
-                    y_shunt=np.array([self._y_shunt]), z_line=np.array([self._z_line])
+                    y_shunt=np.array([self._y_shunt], dtype=np.complex128),
+                    z_line=np.array([self._z_line], dtype=np.complex128),
                 )
             else:
-                self._cy_element.update_line_parameters(z_line=np.array([self._z_line]))
+                self._cy_element.update_line_parameters(z_line=np.array([self._z_line], dtype=np.complex128))
 
     @property
     @ureg_wraps("km", (None,))
@@ -161,7 +163,7 @@ class Line(AbstractBranch):
 
     @property
     def with_shunt(self) -> bool:
-        return self._parameters.with_shunt
+        return self._with_shunt
 
     def _res_series_values_getter(self, warning: bool) -> tuple[Complex, Complex]:
         pot1, pot2 = self._res_potentials_getter(warning)  # V
@@ -181,7 +183,7 @@ class Line(AbstractBranch):
 
     def _res_series_power_losses_getter(self, warning: bool) -> Complex:
         du_line, i_line = self._res_series_values_getter(warning)
-        return du_line * i_line.conj()  # Sₗ = ΔU.Iₗ*
+        return du_line * i_line.conjugate()  # Sₗ = ΔU.Iₗ*
 
     @property
     @ureg_wraps("VA", (None,))
@@ -215,7 +217,7 @@ class Line(AbstractBranch):
         if not self.with_shunt:
             return 0j
         pot1, pot2, cur1, cur2 = self._res_shunt_values_getter(warning)
-        return pot1 * cur1.conj() + pot2 * cur2.conj()
+        return pot1 * cur1.conjugate() + pot2 * cur2.conjugate()
 
     @property
     @ureg_wraps("VA", (None,))

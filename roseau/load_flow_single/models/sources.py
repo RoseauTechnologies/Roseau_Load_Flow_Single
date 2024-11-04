@@ -79,7 +79,7 @@ class VoltageSource(Element):
         self._voltage = value
         self._invalidate_network_results()
         if self._cy_element is not None:
-            self._cy_element.update_voltages([self._voltage])
+            self._cy_element.update_voltages(np.array([self._voltage], dtype=np.complex128))
 
     def _refresh_results(self) -> None:
         self._res_current = self._cy_element.get_currents(self._n)[0]
@@ -124,7 +124,7 @@ class VoltageSource(Element):
             warning = False  # we warn only once
         if potential is None:
             potential = self._res_potential_getter(warning=warning)
-        return potential * current.conj()
+        return potential * current.conjugate()
 
     @property
     @ureg_wraps("VA", (None,))
@@ -161,12 +161,8 @@ class VoltageSource(Element):
         voltage = data["voltage"][0] + 1j * data["voltage"][1]
         self = cls(id=data["id"], bus=data["bus"], voltage=voltage)
         if include_results and "results" in data:
-            self._res_current = np.array(
-                [data["results"]["current"][0] + 1j * data["results"]["current"][1]], dtype=np.complex128
-            )
-            self._res_potential = np.array(
-                [complex(data["results"]["potential"][0], data["results"]["potential"][1])], dtype=np.complex128
-            )
+            self._res_current = complex(data["results"]["current"][0], data["results"]["current"][1])
+            self._res_potential = complex(data["results"]["potential"][0], data["results"]["potential"][1])
             self._fetch_results = False
             self._no_results = False
         return self

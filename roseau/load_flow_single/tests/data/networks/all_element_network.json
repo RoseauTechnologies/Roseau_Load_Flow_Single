@@ -1,0 +1,342 @@
+{
+  "version": 2,
+  "is_multiphase": false,
+  "buses": [
+    {
+      "id": "bus0",
+      "results": {
+        "potential": [20000.0, -6.32340360542244e-19]
+      }
+    },
+    {
+      "id": "bus1",
+      "results": {
+        "potential": [19997.313735916792, -1.2555661507683085]
+      }
+    },
+    {
+      "id": "bus2",
+      "results": {
+        "potential": [392.3988913053337, 0.030743948897791664]
+      }
+    },
+    {
+      "id": "bus3",
+      "results": {
+        "potential": [392.3988913053337, 0.03074394889779166]
+      }
+    },
+    {
+      "id": "bus4",
+      "results": {
+        "potential": [376.57998315823494, -3.8766738354927237]
+      }
+    }
+  ],
+  "lines": [
+    {
+      "id": "line0",
+      "bus1": "bus0",
+      "bus2": "bus1",
+      "length": 1.5,
+      "params_id": "lp0",
+      "results": {
+        "current1": [7.549415202833188, 0.9653990139522648],
+        "current2": [-7.549383144374588, 0.05585539746971335]
+      }
+    },
+    {
+      "id": "line1",
+      "bus1": "bus3",
+      "bus2": "bus4",
+      "length": 0.1,
+      "params_id": "lp1",
+      "results": {
+        "current1": [377.3691706501051, -2.792763595657746],
+        "current2": [-377.3691706501051, 2.792763595657746]
+      }
+    }
+  ],
+  "transformers": [
+    {
+      "id": "transformer0",
+      "bus1": "bus1",
+      "bus2": "bus2",
+      "results": {
+        "current1": [7.549383144375786, -0.055855397469772916],
+        "current2": [-377.3691706501097, 2.792763595657892]
+      },
+      "tap": 1.0,
+      "params_id": "630kVA"
+    }
+  ],
+  "switches": [
+    {
+      "id": "switch0",
+      "bus1": "bus2",
+      "bus2": "bus3",
+      "results": {
+        "current1": [377.3691706501057, -2.792763595657892],
+        "current2": [-377.3691706501057, 2.792763595657892]
+      }
+    }
+  ],
+  "loads": [
+    {
+      "id": "load0",
+      "bus": "bus4",
+      "type": "power",
+      "power": [100.0, 5.0],
+      "results": {
+        "current": [0.26538302993654794, -0.016009357156951058],
+        "potential": [376.57998315823494, -3.8766738354927237]
+      }
+    },
+    {
+      "id": "load1",
+      "bus": "bus4",
+      "type": "current",
+      "current": [1.0, 0.1],
+      "results": {
+        "current": [1.0, 0.1],
+        "potential": [376.57998315823494, -3.8766738354927237]
+      }
+    },
+    {
+      "id": "load2",
+      "bus": "bus4",
+      "type": "impedance",
+      "impedance": [1, 0],
+      "results": {
+        "current": [376.57998315823494, -3.8766738354927237],
+        "potential": [376.57998315823494, -3.8766738354927237]
+      }
+    },
+    {
+      "id": "load3",
+      "bus": "bus4",
+      "type": "power",
+      "power": [100.0, 0.0],
+      "results": {
+        "current": [0.26551969854802543, -0.0027333722295497863],
+        "potential": [376.57998315823494, -3.8766738354927237],
+        "flexible_power": [100.0, 0.0]
+      },
+      "flexible_param": {
+        "control_p": {
+          "type": "constant"
+        },
+        "control_q": {
+          "type": "constant"
+        },
+        "projection": {
+          "type": "euclidean",
+          "alpha": 1000.0,
+          "epsilon": 1e-8
+        },
+        "s_max": 1.0
+      }
+    },
+    {
+      "id": "load4",
+      "bus": "bus4",
+      "type": "power",
+      "power": [100.0, 0.0],
+      "results": {
+        "current": [3.9358717105101645e-6, -4.0517530305320174e-8],
+        "potential": [376.57998315823494, -3.8766738354927237],
+        "flexible_power": [0.0014823275757065045, 0.0]
+      },
+      "flexible_param": {
+        "control_p": {
+          "type": "p_max_u_consumption",
+          "u_min": 380.0,
+          "u_down": 385.0,
+          "alpha": 1000.0,
+          "epsilon": 1e-8
+        },
+        "control_q": {
+          "type": "constant"
+        },
+        "projection": {
+          "type": "euclidean",
+          "alpha": 1000.0,
+          "epsilon": 1e-8
+        },
+        "s_max": 150.0
+      }
+    },
+    {
+      "id": "load5",
+      "bus": "bus4",
+      "type": "power",
+      "power": [100.0, 0.0],
+      "results": {
+        "current": [0.0041011515139713186, 0.3980036321648063],
+        "potential": [376.57998315823494, -3.8766738354927237],
+        "flexible_power": [0.001481300816314164, -149.8960999243087]
+      },
+      "flexible_param": {
+        "control_p": {
+          "type": "p_max_u_consumption",
+          "u_min": 380.0,
+          "u_down": 385.0,
+          "alpha": 1000.0,
+          "epsilon": 1e-8
+        },
+        "control_q": {
+          "type": "q_u",
+          "u_min": 385.0,
+          "u_down": 390.0,
+          "u_up": 415.0,
+          "u_max": 420.0,
+          "alpha": 1000.0
+        },
+        "projection": {
+          "type": "euclidean",
+          "alpha": 1000.0,
+          "epsilon": 1e-8
+        },
+        "s_max": 150.0
+      }
+    },
+    {
+      "id": "load6",
+      "bus": "bus4",
+      "type": "power",
+      "power": [-100.0, 0.0],
+      "results": {
+        "current": [-0.26551969854802543, 0.0027333722295497863],
+        "potential": [376.57998315823494, -3.8766738354927237],
+        "flexible_power": [-100.0, 0.0]
+      },
+      "flexible_param": {
+        "control_p": {
+          "type": "p_max_u_production",
+          "u_up": 415.0,
+          "u_max": 420.0,
+          "alpha": 1000.0,
+          "epsilon": 1e-8
+        },
+        "control_q": {
+          "type": "constant"
+        },
+        "projection": {
+          "type": "euclidean",
+          "alpha": 1000.0,
+          "epsilon": 1e-8
+        },
+        "s_max": 150.0
+      }
+    },
+    {
+      "id": "load7",
+      "bus": "bus4",
+      "type": "power",
+      "power": [-100.0, 0.0],
+      "results": {
+        "current": [-0.2175142885978832, 0.33366291814870713],
+        "potential": [376.57998315823494, -3.8766738354927237],
+        "flexible_power": [-83.20502944152754, -124.80754414551444]
+      },
+      "flexible_param": {
+        "control_p": {
+          "type": "p_max_u_production",
+          "u_up": 415.0,
+          "u_max": 420.0,
+          "alpha": 1000.0,
+          "epsilon": 1e-8
+        },
+        "control_q": {
+          "type": "q_u",
+          "u_min": 385.0,
+          "u_down": 390.0,
+          "u_up": 410.0,
+          "u_max": 415.0,
+          "alpha": 1000.0
+        },
+        "projection": {
+          "type": "euclidean",
+          "alpha": 1000.0,
+          "epsilon": 1e-8
+        },
+        "s_max": 150.0
+      }
+    },
+    {
+      "id": "load8",
+      "bus": "bus4",
+      "type": "power",
+      "power": [-100.0, 0.0],
+      "results": {
+        "current": [-0.2627863263188431, 0.26825307074188354],
+        "potential": [376.57998315823494, -3.8766738354927237],
+        "flexible_power": [-100.0, -99.9999999865578]
+      },
+      "flexible_param": {
+        "control_p": {
+          "type": "constant"
+        },
+        "control_q": {
+          "type": "q_u",
+          "u_min": 385.0,
+          "u_down": 390.0,
+          "u_up": 410.0,
+          "u_max": 415.0,
+          "alpha": 1000.0
+        },
+        "projection": {
+          "type": "euclidean",
+          "alpha": 1000.0,
+          "epsilon": 1e-8
+        },
+        "s_max": 150.0,
+        "q_min": -100.0,
+        "q_max": 100.0
+      }
+    }
+  ],
+  "sources": [
+    {
+      "id": "voltage_source0",
+      "bus": "bus0",
+      "voltage": [20000.0, 0.0],
+      "results": {
+        "current": [-7.549415202840399, -0.9653990139502955],
+        "potential": [20000.0, -6.32340360542244e-19]
+      }
+    }
+  ],
+  "lines_params": [
+    {
+      "id": "lp0",
+      "z_line": [[[0.2430129333]], [[0.0962375209]]],
+      "y_shunt": [[[0.0]], [[3.40441e-5]]],
+      "max_current": 323,
+      "line_type": "UNDERGROUND",
+      "conductor_type": "AM",
+      "insulator_type": "UNKNOWN",
+      "section": 148
+    },
+    {
+      "id": "lp1",
+      "z_line": [[[0.4184]], [[0.1066400577]]],
+      "max_current": 195,
+      "line_type": "TWISTED",
+      "conductor_type": "AL",
+      "insulator_type": "UNKNOWN",
+      "section": 75.0
+    }
+  ],
+  "transformers_params": [
+    {
+      "id": "630kVA",
+      "sn": 630000.0,
+      "uhv": 20000.0,
+      "ulv": 400,
+      "type": "single",
+      "z2": [0.02, 0.0],
+      "ym": [1e-7, 0.0]
+    }
+  ]
+}

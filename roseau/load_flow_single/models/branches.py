@@ -67,7 +67,7 @@ class AbstractBranch(Element):
 
     @property
     @ureg_wraps(("A", "A"), (None,))
-    def res_current(self) -> tuple[Q_[Complex], Q_[Complex]]:
+    def res_currents(self) -> tuple[Q_[Complex], Q_[Complex]]:
         """The load flow result of the branch currents (A)."""
         return self._res_currents_getter(warning=True)
 
@@ -83,8 +83,8 @@ class AbstractBranch(Element):
             current1, current2 = self._res_currents_getter(warning)
         if potential1 is None or potential2 is None:
             potential1, potential2 = self._res_potentials_getter(warning=False)  # we warn on the previous line
-        power1 = potential1 * current1.conj()
-        power2 = potential2 * current2.conj()
+        power1 = potential1 * current1.conjugate()
+        power2 = potential2 * current2.conjugate()
         return power1, power2
 
     @property

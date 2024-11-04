@@ -90,6 +90,12 @@ class AbstractLoad(Element, ABC):
             self._refresh_results()
         return self._res_getter(value=self._res_potential, warning=warning)
 
+    @property
+    @ureg_wraps("V", (None,))
+    def res_potential(self) -> Q_[Complex]:
+        """The load flow result of the load potentials (V)."""
+        return self._res_potential_getter(warning=True)
+
     def _res_voltage_getter(self, warning: bool) -> Complex:
         return self._res_potential_getter(warning)
 
@@ -107,7 +113,7 @@ class AbstractLoad(Element, ABC):
             warning = False  # we warn only one
         if potential is None:
             potential = self._res_potential_getter(warning=warning)
-        return potential * current.conj()
+        return potential * current.conjugate()
 
     @property
     @ureg_wraps("VA", (None,))
@@ -154,18 +160,16 @@ class AbstractLoad(Element, ABC):
                 power=power,
                 flexible_param=fp,
             )
-        # elif load_type == "current": TODO
-        #     currents = [complex(i[0], i[1]) for i in data["currents"]]
-        #     self = CurrentLoad(id=data["id"], bus=data["bus"], currents=currents, phases=data["phases"])
-        # elif load_type == "impedance":
-        #     impedances = [complex(z[0], z[1]) for z in data["impedances"]]
-        #     self = ImpedanceLoad(
-        #         id=data["id"],
-        #         bus=data["bus"],
-        #         impedances=impedances,
-        #         phases=data["phases"],
-        #         connect_neutral=data.get("connect_neutral"),
-        #     )
+        elif load_type == "current":
+            current = complex(data["current"][0], data["current"][1])
+            self = CurrentLoad(id=data["id"], bus=data["bus"], current=current)
+        elif load_type == "impedance":
+            impedance = complex(data["impedance"][0], data["impedance"][1])
+            self = ImpedanceLoad(
+                id=data["id"],
+                bus=data["bus"],
+                impedance=impedance,
+            )
         else:
             msg = f"Unknown load type {load_type!r} for load {data['id']!r}"
             logger.error(msg)
@@ -189,7 +193,7 @@ class AbstractLoad(Element, ABC):
             "id": self.id,
             "bus": self.bus.id,
             "type": self.type,
-            f"{self.type}s": [complex_value.real, complex_value.imag],
+            f"{self.type}": [complex_value.real, complex_value.imag],
         }
         if include_results:
             current = self._res_current_getter(warning=True)
@@ -305,7 +309,7 @@ class PowerLoad(AbstractLoad):
         self._power = value
         self._invalidate_network_results()
         if self._cy_element is not None:
-            self._cy_element.update_powers([self._power])
+            self._cy_element.update_powers(np.array([self._power], dtype=np.complex128))
 
     def _refresh_results(self) -> None:
         super()._refresh_results()

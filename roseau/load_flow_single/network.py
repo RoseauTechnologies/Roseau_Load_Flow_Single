@@ -149,7 +149,7 @@ class ElectricalNetwork(JsonMixin):
         self._check_validity(constructed=False)
         self._create_network()
         self._valid = True
-        self._solver = AbstractSolver.from_dict(data={"name": "newton", "params": {}}, network=self)
+        self._solver = AbstractSolver.from_dict(data={"name": self._DEFAULT_SOLVER, "params": {}}, network=self)
         if crs is None:
             crs = "EPSG:4326"
         self.crs: CRS = CRS(crs)
@@ -676,9 +676,9 @@ class ElectricalNetwork(JsonMixin):
             current1, current2 = line._res_currents_getter(warning=False)
             potential1, potential2 = line._res_potentials_getter(warning=False)
             du_line, series_current = line._res_series_values_getter(warning=False)
-            power1 = potential1 * current1.conj()
-            power2 = potential2 * current2.conj()
-            series_loss = du_line * series_current.conj()
+            power1 = potential1 * current1.conjugate()
+            power2 = potential2 * current2.conjugate()
+            series_loss = du_line * series_current.conjugate()
             i_max = line.parameters._max_current
             violated = None if i_max is None else (abs(current1) > i_max or abs(current2) > i_max)
             res_dict["line_id"].append(line.id)
@@ -726,8 +726,8 @@ class ElectricalNetwork(JsonMixin):
         for transformer in self.transformers.values():
             current1, current2 = transformer._res_currents_getter(warning=False)
             potential1, potential2 = transformer._res_potentials_getter(warning=False)
-            power1 = potential1 * current1.conj()
-            power2 = potential2 * current2.conj()
+            power1 = potential1 * current1.conjugate()
+            power2 = potential2 * current2.conjugate()
             s_max = transformer.parameters._max_power
             violated = (abs(power1) > s_max or abs(power2) > s_max) if s_max is not None else None
             res_dict["transformer_id"].append(transformer.id)
@@ -772,8 +772,8 @@ class ElectricalNetwork(JsonMixin):
                 continue
             current1, current2 = switch._res_currents_getter(warning=False)
             potential1, potential2 = switch._res_potentials_getter(warning=False)
-            power1 = potential1 * current1.conj()
-            power2 = potential2 * current2.conj()
+            power1 = potential1 * current1.conjugate()
+            power2 = potential2 * current2.conjugate()
             res_dict["switch_id"].append(switch.id)
             res_dict["current1"].append(current1)
             res_dict["current2"].append(current2)
@@ -802,7 +802,7 @@ class ElectricalNetwork(JsonMixin):
         for load_id, load in self.loads.items():
             current = load._res_current_getter(warning=False)
             potential = load._res_potential_getter(warning=False)
-            power = potential * current.conj()
+            power = potential * current.conjugate()
             res_dict["load_id"].append(load_id)
             res_dict["type"].append(load.type)
             res_dict["current"].append(current)
@@ -874,7 +874,7 @@ class ElectricalNetwork(JsonMixin):
         for source_id, source in self.sources.items():
             current = source._res_current_getter(warning=False)
             potential = source._res_potential_getter(warning=False)
-            power = potential * current.conj()
+            power = potential * current.conjugate()
             res_dict["source_id"].append(source_id)
             res_dict["current"].append(current)
             res_dict["power"].append(power)
@@ -1106,7 +1106,7 @@ class ElectricalNetwork(JsonMixin):
         Returns:
             The constructed network.
         """
-        buses, lines, transformers, switches, loads, sources, grounds, p_refs, has_results = network_from_dict(
+        buses, lines, transformers, switches, loads, sources, has_results = network_from_dict(
             data=data, include_results=include_results
         )
         network = cls(
