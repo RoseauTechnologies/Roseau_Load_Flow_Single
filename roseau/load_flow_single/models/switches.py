@@ -32,7 +32,7 @@ class Switch(AbstractBranch):
             geometry:
                 The geometry of the switch.
         """
-        super().__init__(id=id, bus1=bus1, bus2=bus2, geometry=geometry)
+        super().__init__(id=id, bus1=bus1, bus2=bus2, n=1, geometry=geometry)
         self._check_elements()
         self._check_loop()
         self._cy_element = CySwitch(1)

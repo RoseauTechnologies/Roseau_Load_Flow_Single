@@ -51,7 +51,7 @@ class Line(AbstractBranch):
                 The geometry of the line i.e. the linestring.
         """
         self._initialized = False
-        super().__init__(id=id, bus1=bus1, bus2=bus2, geometry=geometry)
+        super().__init__(id=id, bus1=bus1, bus2=bus2, n=1, geometry=geometry)
         self.length = length
         self.parameters = parameters
         self._initialized = True

@@ -52,7 +52,7 @@ class Transformer(AbstractBranch):
                 The geometry of the transformer.
         """
         assert parameters.type == "single"  # TODO error
-        super().__init__(id=id, bus1=bus1, bus2=bus2, geometry=geometry)
+        super().__init__(id=id, bus1=bus1, bus2=bus2, n=2, geometry=geometry)
         self.tap = tap
         self._parameters = parameters
 

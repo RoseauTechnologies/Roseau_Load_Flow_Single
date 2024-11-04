@@ -20,7 +20,7 @@ class AbstractBranch(Element):
         :doc:`Switch model documentation </models/Switch>`
     """
 
-    def __init__(self, id: Id, bus1: Bus, bus2: Bus, *, geometry: BaseGeometry | None = None) -> None:
+    def __init__(self, id: Id, bus1: Bus, bus2: Bus, n: int, *, geometry: BaseGeometry | None = None) -> None:
         """AbstractBranch constructor.
 
         Args:
@@ -41,6 +41,7 @@ class AbstractBranch(Element):
         super().__init__(id)
         self._bus1 = bus1
         self._bus2 = bus2
+        self._n = n
         self.geometry = geometry
         self._connect(bus1, bus2)
         self._res_currents: tuple[Complex, Complex] | None = None
@@ -119,10 +120,12 @@ class AbstractBranch(Element):
     def _cy_connect(self) -> None:
         """Connect the Cython elements of the buses and the branch"""
         assert isinstance(self.bus1, Bus)
-        self._cy_element.connect(self.bus1._cy_element, [(0, 0)], True)
+        for i in range(self._n):
+            self._cy_element.connect(self.bus1._cy_element, [(i, i)], True)
 
         assert isinstance(self.bus2, Bus)
-        self._cy_element.connect(self.bus2._cy_element, [(0, 0)], False)
+        for i in range(self._n):
+            self._cy_element.connect(self.bus2._cy_element, [(i, i)], False)
 
     #
     # Json Mixin interface
