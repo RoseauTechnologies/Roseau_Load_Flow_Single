@@ -65,7 +65,7 @@ class VoltageSource(Element):
 
     @property
     @ureg_wraps("V", (None,))
-    def voltage(self) -> Q_[complex]:
+    def voltage(self) -> Q_[Complex]:
         """The complex voltage of the source (V).
 
         Setting the voltage will update the source voltage and invalidate the network results.
@@ -74,7 +74,7 @@ class VoltageSource(Element):
 
     @voltage.setter
     @ureg_wraps(None, (None, "V"))
-    def voltage(self, value: float) -> None:
+    def voltage(self, value: Complex) -> None:
         """Set the voltages of the source."""
         self._voltage = value
         self._invalidate_network_results()

@@ -427,7 +427,9 @@ class ImpedanceLoad(AbstractLoad):
         """
         super().__init__(id=id, bus=bus)
         self.impedance = impedance
-        self._cy_element = CyAdmittanceLoad(n=self._n, admittances=1.0 / self._impedance)
+        self._cy_element = CyAdmittanceLoad(
+            n=self._n, admittances=np.array([1.0 / self._impedance], dtype=np.complex128)
+        )
         self._cy_connect()
 
     @property

@@ -65,7 +65,7 @@ class Bus(Element):
         self._n = 2
         self._initialized = initialized
         self._initialized_by_the_user = initialized  # only used for serialization
-        self._cy_element = CyBus(n=self._n, potentials=np.array([0, self._potential], dtype=np.complex128))
+        self._cy_element = CyBus(n=self._n, potentials=np.array([self._potential, 0], dtype=np.complex128))
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}(id={self.id!r})"

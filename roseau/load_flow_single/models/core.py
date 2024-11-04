@@ -1,7 +1,7 @@
 import logging
 import warnings
 from abc import ABC
-from typing import TYPE_CHECKING, Any, ClassVar, NoReturn, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, NoReturn, Optional, TypeVar
 
 import shapely
 from shapely.geometry import shape
@@ -22,13 +22,6 @@ _T = TypeVar("_T")
 
 class Element(ABC, Identifiable, JsonMixin):
     """An abstract class of an element in an Electrical network."""
-
-    allowed_phases: ClassVar[frozenset[str]]  # frozenset for immutability and uniqueness
-    """The allowed phases for this element type.
-
-    It is a frozen set of strings like ``"abc"`` or ``"an"`` etc. The order of the phases is
-    important. For a full list of supported phases, use ``print(<Element class>.allowed_phases)``.
-    """
 
     def __init__(self, id: Id) -> None:
         """Element constructor.
@@ -156,6 +149,7 @@ class Element(ABC, Identifiable, JsonMixin):
                     "ensure the validity of results."
                 ),
                 category=UserWarning,
+                stacklevel=1,  # TODO
             )
         self._fetch_results = False
         return value
