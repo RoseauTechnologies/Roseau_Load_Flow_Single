@@ -16,7 +16,6 @@ import pandas as pd
 from pyproj import CRS
 from typing_extensions import Self
 
-from roseau.load_flow import CurrentLoad, ImpedanceLoad
 from roseau.load_flow._solvers import AbstractSolver
 from roseau.load_flow.exceptions import RoseauLoadFlowException, RoseauLoadFlowExceptionCode
 from roseau.load_flow.io import network_from_dict, network_to_dict
@@ -30,6 +29,7 @@ from roseau.load_flow_single.models.buses import Bus
 from roseau.load_flow_single.models.core import Element
 from roseau.load_flow_single.models.lines import Line
 from roseau.load_flow_single.models.loads import AbstractLoad, PowerLoad
+from roseau.load_flow_single.models.loads.loads import CurrentLoad, ImpedanceLoad
 from roseau.load_flow_single.models.sources import VoltageSource
 from roseau.load_flow_single.models.switches import Switch
 
@@ -728,7 +728,7 @@ class ElectricalNetwork(JsonMixin):
             power1 = potential1 * current1.conj()
             power2 = potential2 * current2.conj()
             s_max = transformer.parameters._max_power
-            violated = (abs(power1.sum()) > s_max or abs(power2.sum()) > s_max) if s_max is not None else None
+            violated = (abs(power1) > s_max or abs(power2) > s_max) if s_max is not None else None
             res_dict["transformer_id"].append(transformer.id)
             res_dict["current1"].append(current1)
             res_dict["current2"].append(current2)

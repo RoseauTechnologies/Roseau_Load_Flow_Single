@@ -9,6 +9,8 @@ from roseau.load_flow.models.loads.flexible_parameters import FlexibleParameter
 from roseau.load_flow.typing import Complex, Id, JsonDict
 from roseau.load_flow.units import Q_, ureg_wraps
 from roseau.load_flow_engine.cy_engine import (
+    CyAdmittanceLoad,
+    CyCurrentLoad,
     CyFlexibleLoad,
     CyPowerLoad,
 )
@@ -267,9 +269,9 @@ class PowerLoad(AbstractLoad):
     @property
     @ureg_wraps("VA", (None,))
     def power(self) -> Q_[Complex]:
-        """The powers of the load (VA).
+        """The power of the load (VA).
 
-        Setting the powers will update the load's power values and invalidate the network results.
+        Setting the power will update the load's power values and invalidate the network results.
         """
         return self._power
 
@@ -354,3 +356,90 @@ class PowerLoad(AbstractLoad):
             }
         else:
             return super()._results_to_dict(warning=warning, full=full)
+
+
+class CurrentLoad(AbstractLoad):
+    """A constant current load."""
+
+    type: Final = "current"
+
+    def __init__(self, id: Id, bus: Bus, *, current: Complex) -> None:
+        """CurrentLoad constructor.
+
+        Args:
+            id:
+                A unique ID of the load in the network loads.
+
+            bus:
+                The bus to connect the load to.
+
+            current:
+                A single current value, either complex value (A) or a :class:`Quantity <roseau.load_flow.units.Q_>` of
+                complex value.
+        """
+        super().__init__(id=id, bus=bus)
+        self.current = current  # handles size checks and unit conversion
+        self._cy_element = CyCurrentLoad(n=self._n, currents=np.array([self._current], dtype=np.complex128))
+        self._cy_connect()
+
+    @property
+    @ureg_wraps("A", (None,))
+    def current(self) -> Q_[Complex]:
+        """The current of the load (Amps).
+
+        Setting the current will update the load's current and invalidate the network results.
+        """
+        return self._current
+
+    @current.setter
+    @ureg_wraps(None, (None, "A"))
+    def current(self, value: Complex) -> None:
+        self._current = self._validate_value(value)
+        self._invalidate_network_results()
+        if self._cy_element is not None:
+            self._cy_element.update_currents(self._current)
+
+
+class ImpedanceLoad(AbstractLoad):
+    """A constant impedance load."""
+
+    type: Final = "impedance"
+
+    def __init__(
+        self,
+        id: Id,
+        bus: Bus,
+        *,
+        impedance: Complex,
+    ) -> None:
+        """ImpedanceLoad constructor.
+
+        Args:
+            id:
+                A unique ID of the load in the network loads.
+
+            bus:
+                The bus to connect the load to.
+
+            impedance:
+                A single impedance value, either complex value (Ohms) or a :class:`Quantity <roseau.load_flow.units.Q_>`
+                of complex value.
+        """
+        super().__init__(id=id, bus=bus)
+        self.impedance = impedance
+        self._cy_element = CyAdmittanceLoad(n=self._n, admittances=1.0 / self._impedance)
+        self._cy_connect()
+
+    @property
+    @ureg_wraps("ohm", (None,))
+    def impedance(self) -> Q_[Complex]:
+        """The impedance of the load (Ohms)."""
+        return self._impedance
+
+    @impedance.setter
+    @ureg_wraps(None, (None, "ohm"))
+    def impedance(self, impedance: Complex) -> None:
+        self._impedance = self._validate_value(impedance)
+        self._invalidate_network_results()
+        if self._cy_element is not None:
+            self._cy_element.update_admittances(1.0 / self._impedance)

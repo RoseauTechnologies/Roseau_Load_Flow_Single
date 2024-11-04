@@ -1,7 +1,9 @@
 import logging
 
+import numpy as np
+
 from roseau.load_flow.models.lines.parameters import LineParameters as TriLineParameters
-from roseau.load_flow.typing import Id
+from roseau.load_flow.typing import ComplexArrayLike2D, Id
 from roseau.load_flow.units import Q_, ureg_wraps
 from roseau.load_flow.utils import (
     ConductorType,
@@ -19,8 +21,8 @@ class LineParameters(TriLineParameters):
     def __init__(
         self,
         id: Id,
-        z_line: complex,
-        y_shunt: complex | None = None,
+        z_line: complex | ComplexArrayLike2D,
+        y_shunt: complex | ComplexArrayLike2D | None = None,
         max_current: float | None = None,
         line_type: LineType | None = None,
         conductor_type: ConductorType | None = None,
@@ -62,10 +64,11 @@ class LineParameters(TriLineParameters):
                 automatically filled when the line parameters are created from a geometric model or
                 from the catalogue.
         """
-        y_shunt_tri = [[y_shunt]] if y_shunt is not None else None
+        z_line_tri = [[z_line]] if np.isscalar(z_line) else z_line
+        y_shunt_tri = [[y_shunt]] if y_shunt is not None and np.isscalar(y_shunt) else y_shunt
         super().__init__(
             id,
-            z_line=[[z_line]],
+            z_line=z_line_tri,
             y_shunt=y_shunt_tri,
             max_current=max_current,
             line_type=line_type,

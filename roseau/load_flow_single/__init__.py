@@ -1,3 +1,4 @@
+from roseau.load_flow_single.models.branches import AbstractBranch
 from roseau.load_flow_single.models.buses import Bus
 from roseau.load_flow_single.models.core import Element
 from roseau.load_flow_single.models.lines import Line, LineParameters
@@ -20,4 +21,5 @@ __all__ = [
     "Transformer",
     "TransformerParameters",
     "FlexibleParameter",
+    "AbstractBranch",
 ]
