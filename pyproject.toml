@@ -51,6 +51,23 @@ documentation = "https://roseau-load-flow.roseautechnologies.com/"
 plot = ["matplotlib>=3.7.2"]
 graph = ["networkx>=3.0.0"]
 
+[dependency-groups]
+dev = [
+    # Tests
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
+    "pytest-xdist>=3.1.0",
+    "coverage[toml]>=7.0.5",
+    "coverage-conditional-plugin>=0.9.0",
+]
+
+[tool.uv.sources]
+roseau-load-flow-engine = { git = "ssh://git@github.com/RoseauTechnologies/Roseau_Load_Flow_Engine.git", branch = "develop" }
+roseau-load-flow = { git = "ssh://git@github.com/RoseauTechnologies/Roseau_Load_Flow.git", branch = "develop" }
+
+[tool.uv]
+managed = true
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -62,22 +79,8 @@ exclude = ["*tests*", "*conftest.py"]
 [tool.hatch.build.targets.wheel]
 packages = ["roseau"]
 
-
-[tool.rye]
-managed = true
-universal = true
-dev-dependencies = [
-    # Tests
-    "pytest>=8.0.0",
-    "pytest-cov>=5.0.0",
-    "pytest-xdist>=3.1.0",
-    "coverage[toml]>=7.0.5",
-    "coverage-conditional-plugin>=0.9.0",
-]
-
 [tool.ruff]
 line-length = 120
-target-version = "py310"
 show-fixes = true
 namespace-packages = ["roseau"]
 
