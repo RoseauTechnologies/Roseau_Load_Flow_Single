@@ -90,11 +90,11 @@ def dgs_network_path(request) -> Path:
     return request.param
 
 
-@pytest.fixture()
+@pytest.fixture
 def dgs_special_network_dir() -> Path:
     return TEST_DGS_SPECIAL_NETWORKS_DIR
 
 
-@pytest.fixture()
+@pytest.fixture
 def test_networks_path() -> Path:
     return TEST_ALL_NETWORKS_DATA_FOLDER
