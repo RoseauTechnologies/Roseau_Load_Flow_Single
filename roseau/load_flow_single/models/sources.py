@@ -47,7 +47,9 @@ class VoltageSource(Element):
         self._bus = bus
         self._n = 2
         self.voltage = voltage
-        self._cy_element = CyVoltageSource(n=self._n, voltages=np.array([self._voltage], dtype=np.complex128))
+        self._cy_element = CyVoltageSource(
+            n=self._n, voltages=np.array([self._voltage / np.sqrt(3.0)], dtype=np.complex128)
+        )
         self._cy_connect()
 
         # Results
@@ -79,7 +81,7 @@ class VoltageSource(Element):
         self._voltage = value
         self._invalidate_network_results()
         if self._cy_element is not None:
-            self._cy_element.update_voltages(np.array([self._voltage], dtype=np.complex128))
+            self._cy_element.update_voltages(np.array([self._voltage / np.sqrt(3.0)], dtype=np.complex128))
 
     def _refresh_results(self) -> None:
         self._res_current = self._cy_element.get_currents(self._n)[0]
@@ -101,14 +103,8 @@ class VoltageSource(Element):
             self._refresh_results()
         return self._res_getter(value=self._res_potential, warning=warning)
 
-    @property
-    @ureg_wraps("V", (None,))
-    def res_potential(self) -> Q_[Complex]:  # TODO delete ?
-        """The load flow result of the source potentials (V)."""
-        return self._res_potential_getter(warning=True)
-
     def _res_voltage_getter(self, warning: bool) -> Complex:
-        return self._res_potential_getter(warning)
+        return self._res_potential_getter(warning) * np.sqrt(3.0)
 
     @property
     @ureg_wraps("V", (None,))
@@ -124,7 +120,7 @@ class VoltageSource(Element):
             warning = False  # we warn only once
         if potential is None:
             potential = self._res_potential_getter(warning=warning)
-        return potential * current.conjugate()
+        return potential * current.conjugate() * 3.0
 
     @property
     @ureg_wraps("VA", (None,))

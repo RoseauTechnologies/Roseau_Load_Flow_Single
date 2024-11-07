@@ -183,7 +183,7 @@ class Line(AbstractBranch):
 
     def _res_series_power_losses_getter(self, warning: bool) -> Complex:
         du_line, i_line = self._res_series_values_getter(warning)
-        return du_line * i_line.conjugate()  # Sₗ = ΔU.Iₗ*
+        return du_line * i_line.conjugate() * 3.0  # Sₗ = ΔU.Iₗ*
 
     @property
     @ureg_wraps("VA", (None,))
@@ -217,7 +217,7 @@ class Line(AbstractBranch):
         if not self.with_shunt:
             return 0j
         pot1, pot2, cur1, cur2 = self._res_shunt_values_getter(warning)
-        return pot1 * cur1.conjugate() + pot2 * cur2.conjugate()
+        return (pot1 * cur1.conjugate() + pot2 * cur2.conjugate()) * 3.0
 
     @property
     @ureg_wraps("VA", (None,))

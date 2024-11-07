@@ -1,5 +1,6 @@
 import logging
 
+import numpy as np
 from shapely.geometry.base import BaseGeometry
 from typing_extensions import Self
 
@@ -83,8 +84,8 @@ class AbstractBranch(Element):
             current1, current2 = self._res_currents_getter(warning)
         if potential1 is None or potential2 is None:
             potential1, potential2 = self._res_potentials_getter(warning=False)  # we warn on the previous line
-        power1 = potential1 * current1.conjugate()
-        power2 = potential2 * current2.conjugate()
+        power1 = potential1 * current1.conjugate() * 3.0
+        power2 = potential2 * current2.conjugate() * 3.0
         return power1, power2
 
     @property
@@ -98,22 +99,16 @@ class AbstractBranch(Element):
         pot2 = self.bus2._res_potential_getter(warning=False)  # we warn on the previous line
         return pot1, pot2
 
-    @property
-    @ureg_wraps(("V", "V"), (None,))
-    def res_potentials(self) -> tuple[Q_[Complex], Q_[Complex]]:
-        """The load flow result of the branch potentials (V)."""
-        return self._res_potentials_getter(warning=True)
-
     def _res_voltages_getter(
         self, warning: bool, potential1: Complex | None = None, potential2: Complex | None = None
     ) -> tuple[Complex, Complex]:
         if potential1 is None or potential2 is None:
             potential1, potential2 = self._res_potentials_getter(warning)
-        return potential1, potential2
+        return potential1 * np.sqrt(3.0), potential2 * np.sqrt(3.0)
 
     @property
     @ureg_wraps(("V", "V"), (None,))
-    def res_voltage(self) -> tuple[Q_[Complex], Q_[Complex]]:
+    def res_voltages(self) -> tuple[Q_[Complex], Q_[Complex]]:
         """The load flow result of the branch voltages (V)."""
         return self._res_voltages_getter(warning=True)
 

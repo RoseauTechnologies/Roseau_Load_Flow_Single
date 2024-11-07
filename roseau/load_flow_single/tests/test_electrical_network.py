@@ -1218,9 +1218,9 @@ def test_results_to_dict_full(all_element_network_with_results):
         np.testing.assert_allclose(complex_powers2, line.res_powers[1].m)
         # Voltages
         complex_voltages1 = res_line["voltage1"][0] + 1j * res_line["voltage1"][1]
-        np.testing.assert_allclose(complex_voltages1, line.res_voltage[0].m)
+        np.testing.assert_allclose(complex_voltages1, line.res_voltages[0].m)
         complex_voltages2 = res_line["voltage2"][0] + 1j * res_line["voltage2"][1]
-        np.testing.assert_allclose(complex_voltages2, line.res_voltage[1].m)
+        np.testing.assert_allclose(complex_voltages2, line.res_voltages[1].m)
         # Power losses
         complex_power_losses = res_line["power_losses"][0] + 1j * res_line["power_losses"][1]
         np.testing.assert_allclose(complex_power_losses, line.res_power_losses.m)
@@ -1265,9 +1265,9 @@ def test_results_to_dict_full(all_element_network_with_results):
         np.testing.assert_allclose(complex_powers2, switch.res_powers[1].m)
         # Voltages
         complex_voltages1 = res_switch["voltage1"][0] + 1j * res_switch["voltage1"][1]
-        np.testing.assert_allclose(complex_voltages1, switch.res_voltage[0].m)
+        np.testing.assert_allclose(complex_voltages1, switch.res_voltages[0].m)
         complex_voltages2 = res_switch["voltage2"][0] + 1j * res_switch["voltage2"][1]
-        np.testing.assert_allclose(complex_voltages2, switch.res_voltage[1].m)
+        np.testing.assert_allclose(complex_voltages2, switch.res_voltages[1].m)
     for res_load in res_network["loads"]:
         load = en.loads[res_load["id"]]
         # Currents

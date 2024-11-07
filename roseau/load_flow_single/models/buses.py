@@ -91,16 +91,10 @@ class Bus(Element):
             self._res_potential = self._cy_element.get_potentials(self._n)[0]
         return self._res_getter(value=self._res_potential, warning=warning)
 
-    @property
-    @ureg_wraps("V", (None,))
-    def res_potential(self) -> Q_[Complex]:
-        """The load flow result of the bus potentials (V)."""
-        return self._res_potential_getter(warning=True)
-
     def _res_voltage_getter(self, warning: bool, potential: Complex | None = None) -> Complex:
         if potential is None:
             potential = self._res_potential_getter(warning=warning)
-        return potential
+        return potential * np.sqrt(3.0)
 
     @property
     @ureg_wraps("V", (None,))

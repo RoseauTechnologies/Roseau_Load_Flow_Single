@@ -90,14 +90,8 @@ class AbstractLoad(Element, ABC):
             self._refresh_results()
         return self._res_getter(value=self._res_potential, warning=warning)
 
-    @property
-    @ureg_wraps("V", (None,))
-    def res_potential(self) -> Q_[Complex]:
-        """The load flow result of the load potentials (V)."""
-        return self._res_potential_getter(warning=True)
-
     def _res_voltage_getter(self, warning: bool) -> Complex:
-        return self._res_potential_getter(warning)
+        return self._res_potential_getter(warning) * np.sqrt(3.0)
 
     @property
     @ureg_wraps("V", (None,))
@@ -113,7 +107,7 @@ class AbstractLoad(Element, ABC):
             warning = False  # we warn only one
         if potential is None:
             potential = self._res_potential_getter(warning=warning)
-        return potential * current.conjugate()
+        return potential * current.conjugate() * 3.0
 
     @property
     @ureg_wraps("VA", (None,))
@@ -256,10 +250,10 @@ class PowerLoad(AbstractLoad):
         if self.is_flexible:
             cy_parameters = np.array([flexible_param._cy_fp])  # type: ignore
             self._cy_element = CyFlexibleLoad(
-                n=self._n, powers=np.array([self._power], dtype=np.complex128), parameters=cy_parameters
+                n=self._n, powers=np.array([self._power / 3.0], dtype=np.complex128), parameters=cy_parameters
             )
         else:
-            self._cy_element = CyPowerLoad(n=self._n, powers=np.array([self._power], dtype=np.complex128))
+            self._cy_element = CyPowerLoad(n=self._n, powers=np.array([self._power / 3.0], dtype=np.complex128))
         self._cy_connect()
 
     @property
@@ -309,12 +303,12 @@ class PowerLoad(AbstractLoad):
         self._power = value
         self._invalidate_network_results()
         if self._cy_element is not None:
-            self._cy_element.update_powers(np.array([self._power], dtype=np.complex128))
+            self._cy_element.update_powers(np.array([self._power / 3.0], dtype=np.complex128))
 
     def _refresh_results(self) -> None:
         super()._refresh_results()
         if self.is_flexible:
-            self._res_flexible_power = self._cy_element.get_powers(self._n)[0]
+            self._res_flexible_power = self._cy_element.get_powers(self._n)[0] * 3.0
 
     def _res_flexible_power_getter(self, warning: bool) -> Complex:
         if self._fetch_results:
