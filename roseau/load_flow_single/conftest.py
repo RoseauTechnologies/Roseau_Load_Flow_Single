@@ -14,6 +14,21 @@ TEST_DGS_NETWORKS = list((HERE / "tests" / "data" / "dgs").rglob("*.json"))
 TEST_DGS_NETWORKS_IDS = [x.stem for x in TEST_DGS_NETWORKS]
 TEST_DGS_SPECIAL_NETWORKS_DIR = HERE / "tests" / "data" / "dgs" / "special"
 
+THREE_PHASES_TRANSFORMER_TYPES = [
+    "Dd0",
+    "Dd6",
+    "Dyn11",
+    "Dyn5",
+    "Dzn0",
+    "Dzn6",
+    "Yd11",
+    "Yd5",
+    "Yyn0",
+    "Yyn6",
+    "Yzn11",
+    "Yzn5",
+]
+
 
 @pytest.fixture(autouse=True, scope="session")
 def _log_setup():
@@ -54,3 +69,8 @@ def dgs_special_network_dir() -> Path:
 @pytest.fixture
 def test_networks_path() -> Path:
     return TEST_ALL_NETWORKS_DATA_FOLDER
+
+
+@pytest.fixture(params=THREE_PHASES_TRANSFORMER_TYPES, ids=THREE_PHASES_TRANSFORMER_TYPES)
+def three_phases_transformer_type(request) -> str:
+    return request.param

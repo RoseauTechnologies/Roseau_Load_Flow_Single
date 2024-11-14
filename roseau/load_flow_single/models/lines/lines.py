@@ -246,7 +246,7 @@ class Line(AbstractBranch):
         if i_max is None:
             return None
         current1, current2 = self._res_currents_getter(warning=True)
-        return float(np.max([abs(current1), abs(current2)])) > i_max
+        return abs(current1) > i_max or abs(current2) > i_max
 
     #
     # Json Mixin interface

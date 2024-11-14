@@ -38,7 +38,7 @@ dependencies = [
     "pyproj>=3.3.0",
     "certifi>=2023.5.7",
     "platformdirs>=4.0.0",
-    "roseau-load-flow-engine==0.15.0",
+    "roseau-load-flow-engine>=0.16.0a",
     "roseau-load-flow==0.10.0",
 ]
 
@@ -62,7 +62,6 @@ dev = [
 ]
 
 [tool.uv.sources]
-roseau-load-flow-engine = { git = "ssh://git@github.com/RoseauTechnologies/Roseau_Load_Flow_Engine.git", branch = "develop" }
 roseau-load-flow = { git = "ssh://git@github.com/RoseauTechnologies/Roseau_Load_Flow.git", branch = "develop" }
 
 [tool.uv]

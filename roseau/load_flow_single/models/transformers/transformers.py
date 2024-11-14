@@ -2,7 +2,7 @@ import logging
 
 from shapely.geometry.base import BaseGeometry
 
-from roseau.load_flow import TransformerParameters
+from roseau.load_flow import ALPHA, ALPHA2, TransformerParameters
 from roseau.load_flow.exceptions import RoseauLoadFlowException, RoseauLoadFlowExceptionCode
 from roseau.load_flow.typing import Id, JsonDict
 from roseau.load_flow.units import Q_, ureg_wraps
@@ -51,13 +51,45 @@ class Transformer(AbstractBranch):
             geometry:
                 The geometry of the transformer.
         """
-        assert parameters.type == "single"  # TODO error
         super().__init__(id=id, bus1=bus1, bus2=bus2, n=2, geometry=geometry)
         self.tap = tap
         self._parameters = parameters
 
-        z2, ym, k = parameters._z2, parameters._ym, parameters._k
-        self._cy_element = CySingleTransformer(z2=z2, ym=ym, k=k * tap)
+        if parameters.type == "center":
+            msg = "Center-tapped transformers are not allowed."
+            logger.error(msg)
+            raise RoseauLoadFlowException(msg=msg, code=RoseauLoadFlowExceptionCode.BAD_TRANSFORMER_WINDINGS)
+        elif parameters.type == "single":
+            z2, ym, k_single = parameters._z2, parameters._ym, parameters._k
+        else:
+            z2, ym = parameters._z2, parameters._ym
+            k_complex_factor = {
+                ("D", "d", 0): 1,
+                ("Y", "y", 0): 1,
+                ("D", "z", 0): 3,
+                ("D", "d", 6): -1,
+                ("Y", "y", 6): -1,
+                ("D", "z", 6): -3,
+                ("D", "y", 1): 1 - ALPHA,
+                ("Y", "z", 1): 1 - ALPHA,
+                ("Y", "d", 1): 1 / (1 - ALPHA2),
+                ("D", "y", 5): ALPHA2 - 1,
+                ("Y", "z", 5): ALPHA2 - 1,
+                ("Y", "d", 5): 1 / (ALPHA - 1),
+                ("D", "y", 11): 1 - ALPHA2,
+                ("Y", "z", 11): 1 - ALPHA2,
+                ("Y", "d", 11): 1 / (1 - ALPHA),
+            }
+            k_single = (
+                parameters._k
+                * k_complex_factor[parameters.winding1[0], parameters.winding2[0], parameters.phase_displacement]
+            )
+            if parameters.winding1.startswith("D"):
+                ym *= 3.0
+            if parameters.winding2.startswith("d"):
+                z2 /= 3.0
+
+        self._cy_element = CySingleTransformer(z2=z2, ym=ym, k=k_single * tap)
         self._cy_connect()
 
     @property
