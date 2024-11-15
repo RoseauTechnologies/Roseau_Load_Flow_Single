@@ -567,27 +567,6 @@ class ElectricalNetwork(JsonMixin):
             - `bus_id`: The id of the bus.
 
         and the following columns:
-            - `potential`: The complex potential of the bus (in Volts).
-        """
-        self._check_valid_results()
-        res_dict = {"bus_id": [], "potential": []}
-        dtypes = {c: _DTYPES[c] for c in res_dict}
-        for bus_id, bus in self.buses.items():
-            potential = bus._res_potential_getter(warning=False)
-            res_dict["bus_id"].append(bus_id)
-            res_dict["potential"].append(potential)
-        return pd.DataFrame(res_dict).astype(dtypes).set_index("bus_id")
-
-    @property
-    def res_buses_voltages(self) -> pd.DataFrame:
-        """The load flow results of the complex voltages of the buses (V).
-
-        The voltages are computed from the potentials of the buses.
-
-        The results are returned as a dataframe with the following index:
-            - `bus_id`: The id of the bus.
-
-        and the following columns:
             - `voltage`: The complex voltage of the bus (in Volts).
             - `min_voltage`: The minimum voltage of the bus (in Volts).
             - `max_voltage`: The maximum voltage of the bus (in Volts).
@@ -640,8 +619,8 @@ class ElectricalNetwork(JsonMixin):
                 first bus.
             - `power2`: The complex power of the line (in VoltAmps) the
                 second bus.
-            - `potential1`: The complex potential of the first bus (in Volts).
-            - `potential2`: The complex potential of the second bus (in Volts).
+            - `voltage1`: The complex voltage of the first bus (in Volts).
+            - `voltage2`: The complex voltage of the second bus (in Volts).
             - `series_loss`: The complex power losses of the line (in VoltAmps)
                 due to the series and mutual impedances.
             - `series_current`: The complex current in the series impedance of the line (in Amps).
@@ -664,8 +643,8 @@ class ElectricalNetwork(JsonMixin):
             "current2": [],
             "power1": [],
             "power2": [],
-            "potential1": [],
-            "potential2": [],
+            "voltage1": [],
+            "voltage2": [],
             "series_losses": [],
             "series_current": [],
             "max_current": [],
@@ -676,9 +655,9 @@ class ElectricalNetwork(JsonMixin):
             current1, current2 = line._res_currents_getter(warning=False)
             potential1, potential2 = line._res_potentials_getter(warning=False)
             du_line, series_current = line._res_series_values_getter(warning=False)
-            power1 = potential1 * current1.conjugate()
-            power2 = potential2 * current2.conjugate()
-            series_loss = du_line * series_current.conjugate()
+            power1 = potential1 * current1.conjugate() * 3.0
+            power2 = potential2 * current2.conjugate() * 3.0
+            series_loss = du_line * series_current.conjugate() * 3.0
             i_max = line.parameters._max_current
             violated = None if i_max is None else (abs(current1) > i_max or abs(current2) > i_max)
             res_dict["line_id"].append(line.id)
@@ -686,8 +665,8 @@ class ElectricalNetwork(JsonMixin):
             res_dict["current2"].append(current2)
             res_dict["power1"].append(power1)
             res_dict["power2"].append(power2)
-            res_dict["potential1"].append(potential1)
-            res_dict["potential2"].append(potential2)
+            res_dict["voltage1"].append(potential1 * np.sqrt(3.0))
+            res_dict["voltage2"].append(potential2 * np.sqrt(3.0))
             res_dict["series_losses"].append(series_loss)
             res_dict["series_current"].append(series_current)
             res_dict["max_current"].append(i_max)
@@ -706,8 +685,8 @@ class ElectricalNetwork(JsonMixin):
             - `current2`: The complex current of the transformer (in Amps) at the second bus.
             - `power1`: The complex power of the transformer (in VoltAmps) at the first bus.
             - `power2`: The complex power of the transformer (in VoltAmps) at the second bus.
-            - `potential1`: The complex potential of the first bus (in Volts).
-            - `potential2`: The complex potential of the second bus (in Volts).
+            - `voltage1`: The complex voltage of the first bus (in Volts).
+            - `voltage2`: The complex voltage of the second bus (in Volts).
             - `max_power`: The maximum power loading (in VoltAmps) of the transformer.
         """
         self._check_valid_results()
@@ -717,8 +696,8 @@ class ElectricalNetwork(JsonMixin):
             "current2": [],
             "power1": [],
             "power2": [],
-            "potential1": [],
-            "potential2": [],
+            "voltage1": [],
+            "voltage2": [],
             "max_power": [],
             "violated": [],
         }
@@ -726,8 +705,8 @@ class ElectricalNetwork(JsonMixin):
         for transformer in self.transformers.values():
             current1, current2 = transformer._res_currents_getter(warning=False)
             potential1, potential2 = transformer._res_potentials_getter(warning=False)
-            power1 = potential1 * current1.conjugate()
-            power2 = potential2 * current2.conjugate()
+            power1 = potential1 * current1.conjugate() * 3.0
+            power2 = potential2 * current2.conjugate() * 3.0
             s_max = transformer.parameters._max_power
             violated = (abs(power1) > s_max or abs(power2) > s_max) if s_max is not None else None
             res_dict["transformer_id"].append(transformer.id)
@@ -735,8 +714,8 @@ class ElectricalNetwork(JsonMixin):
             res_dict["current2"].append(current2)
             res_dict["power1"].append(power1)
             res_dict["power2"].append(power2)
-            res_dict["potential1"].append(potential1)
-            res_dict["potential2"].append(potential2)
+            res_dict["voltage1"].append(potential1 * np.sqrt(3.0))
+            res_dict["voltage2"].append(potential2 * np.sqrt(3.0))
             res_dict["max_power"].append(s_max)
             res_dict["violated"].append(violated)
         return pd.DataFrame(res_dict).astype(dtypes).set_index("transformer_id")
@@ -753,8 +732,8 @@ class ElectricalNetwork(JsonMixin):
             - `current2`: The complex current of the switch (in Amps) at the second bus.
             - `power1`: The complex power of the switch (in VoltAmps) at the first bus.
             - `power2`: The complex power of the switch (in VoltAmps) at the second bus.
-            - `potential1`: The complex potential of the first bus (in Volts).
-            - `potential2`: The complex potential of the second bus (in Volts).
+            - `voltage1`: The complex voltage of the first bus (in Volts).
+            - `voltage2`: The complex voltage of the second bus (in Volts).
         """
         self._check_valid_results()
         res_dict = {
@@ -763,8 +742,8 @@ class ElectricalNetwork(JsonMixin):
             "current2": [],
             "power1": [],
             "power2": [],
-            "potential1": [],
-            "potential2": [],
+            "voltage1": [],
+            "voltage2": [],
         }
         dtypes = {c: _DTYPES[c] for c in res_dict}
         for switch in self.switches.values():
@@ -772,15 +751,15 @@ class ElectricalNetwork(JsonMixin):
                 continue
             current1, current2 = switch._res_currents_getter(warning=False)
             potential1, potential2 = switch._res_potentials_getter(warning=False)
-            power1 = potential1 * current1.conjugate()
-            power2 = potential2 * current2.conjugate()
+            power1 = potential1 * current1.conjugate() * 3.0
+            power2 = potential2 * current2.conjugate() * 3.0
             res_dict["switch_id"].append(switch.id)
             res_dict["current1"].append(current1)
             res_dict["current2"].append(current2)
             res_dict["power1"].append(power1)
             res_dict["power2"].append(power2)
-            res_dict["potential1"].append(potential1)
-            res_dict["potential2"].append(potential2)
+            res_dict["voltage1"].append(potential1 * np.sqrt(3.0))
+            res_dict["voltage2"].append(potential2 * np.sqrt(3.0))
         return pd.DataFrame(res_dict).astype(dtypes).set_index("switch_id")
 
     @property
@@ -794,42 +773,21 @@ class ElectricalNetwork(JsonMixin):
             - `type`: The type of the load, can be ``{'power', 'current', 'impedance'}``.
             - `current`: The complex current of the load (in Amps).
             - `power`: The complex power of the load (in VoltAmps).
-            - `potential`: The complex potential of the load (in Volts).
+            - `voltage`: The complex voltage of the load (in Volts).
         """
         self._check_valid_results()
-        res_dict = {"load_id": [], "type": [], "current": [], "power": [], "potential": []}
+        res_dict = {"load_id": [], "type": [], "current": [], "power": [], "voltage": []}
         dtypes = {c: _DTYPES[c] for c in res_dict} | {"type": LoadTypeDtype}
         for load_id, load in self.loads.items():
             current = load._res_current_getter(warning=False)
             potential = load._res_potential_getter(warning=False)
-            power = potential * current.conjugate()
+            power = potential * current.conjugate() * 3.0
             res_dict["load_id"].append(load_id)
             res_dict["type"].append(load.type)
             res_dict["current"].append(current)
             res_dict["power"].append(power)
-            res_dict["potential"].append(potential)
+            res_dict["voltage"].append(potential * np.sqrt(3.0))
         return pd.DataFrame(res_dict).astype(dtypes).set_index("load_id")
-
-    @property
-    def res_loads_voltages(self) -> pd.DataFrame:
-        """The load flow results of the complex voltages of the loads (V).
-
-        The results are returned as a dataframe with the following index:
-            - `load_id`: The id of the load.
-
-        and the following columns:
-            - `type`: The type of the load, can be ``{'power', 'current', 'impedance'}``.s
-            - `voltage`: The complex voltage of the load (in Volts).
-        """
-        self._check_valid_results()
-        voltages_dict = {"load_id": [], "type": [], "voltage": []}
-        dtypes = {c: _DTYPES[c] for c in voltages_dict} | {"type": LoadTypeDtype}
-        for load_id, load in self.loads.items():
-            voltage = load._res_voltage_getter(warning=False)
-            voltages_dict["load_id"].append(load_id)
-            voltages_dict["type"].append(load.type)
-            voltages_dict["voltage"].append(voltage)
-        return pd.DataFrame(voltages_dict).astype(dtypes).set_index("load_id")
 
     @property
     def res_loads_flexible_powers(self) -> pd.DataFrame:
@@ -866,19 +824,19 @@ class ElectricalNetwork(JsonMixin):
         and the following columns:
             - `current`: The complex current of the source (in Amps).
             - `power`: The complex power of the source (in VoltAmps).
-            - `potential`: The complex potential of the source (in Volts).
+            - `voltage`: The complex voltage of the source (in Volts).
         """
         self._check_valid_results()
-        res_dict = {"source_id": [], "current": [], "power": [], "potential": []}
+        res_dict = {"source_id": [], "current": [], "power": [], "voltage": []}
         dtypes = {c: _DTYPES[c] for c in res_dict}
         for source_id, source in self.sources.items():
             current = source._res_current_getter(warning=False)
             potential = source._res_potential_getter(warning=False)
-            power = potential * current.conjugate()
+            power = potential * current.conjugate() * 3.0
             res_dict["source_id"].append(source_id)
             res_dict["current"].append(current)
             res_dict["power"].append(power)
-            res_dict["potential"].append(potential)
+            res_dict["voltage"].append(potential * np.sqrt(3.0))
         return pd.DataFrame(res_dict).astype(dtypes).set_index("source_id")
 
     #

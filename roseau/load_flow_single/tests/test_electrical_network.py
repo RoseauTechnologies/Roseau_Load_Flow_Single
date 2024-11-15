@@ -426,7 +426,7 @@ def test_buses_voltages(small_network_with_results):
         },
     ]
 
-    buses_voltages = en.res_buses_voltages
+    buses_voltages = en.res_buses
     expected_buses_voltages = (
         pd.DataFrame.from_records(voltage_records)
         .astype(
@@ -524,13 +524,12 @@ def test_network_results_warning(small_network, small_network_with_results, recw
 
     # All the results function raises an exception
     result_field_names_dict = {
-        "buses": ("res_potential", "res_voltage", "res_violated"),
+        "buses": ("res_voltage", "res_violated"),
         "lines": (
             "res_currents",
             "res_violated",
-            "res_voltage",
+            "res_voltages",
             "res_power_losses",
-            "res_potentials",
             "res_powers",
             "res_series_currents",
             "res_series_power_losses",
@@ -540,14 +539,13 @@ def test_network_results_warning(small_network, small_network_with_results, recw
         "transformers": (
             "res_currents",
             "res_powers",
-            "res_potentials",
             "res_power_losses",
             "res_violated",
             "res_voltages",
         ),
-        "switches": ("res_currents", "res_potentials", "res_powers", "res_voltages"),
-        "loads": ("res_current", "res_power", "res_potential", "res_voltage"),
-        "sources": ("res_current", "res_potential", "res_power"),
+        "switches": ("res_currents", "res_powers", "res_voltages"),
+        "loads": ("res_current", "res_power", "res_voltage"),
+        "sources": ("res_current", "res_power"),
     }
     for bus in en.buses.values():
         for result_field_name in result_field_names_dict["buses"]:
@@ -672,8 +670,6 @@ def test_network_results_warning(small_network, small_network_with_results, recw
     with check_result_warning(expected_message=expected_message):
         _ = en.res_buses
     with check_result_warning(expected_message=expected_message):
-        _ = en.res_buses_voltages
-    with check_result_warning(expected_message=expected_message):
         _ = en.res_lines
     with check_result_warning(expected_message=expected_message):
         _ = en.res_transformers
@@ -703,19 +699,6 @@ def test_network_results_error(small_network):
 def test_load_flow_results_frames(small_network_with_results):
     en = small_network_with_results
     en.buses["bus0"].min_voltage = 21_000
-
-    # Buses results
-    expected_res_buses = (
-        pd.DataFrame.from_records(
-            [
-                {"bus_id": "bus0", "potential": 20000 + 2.89120338e-18j},
-                {"bus_id": "bus1", "potential": 19999.949999875 + 2.891196e-18j},
-            ]
-        )
-        .astype({"bus_id": object, "potential": complex})
-        .set_index("bus_id")
-    )
-    assert_frame_equal(en.res_buses, expected_res_buses, rtol=1e-5)
 
     # Buses voltages results
     expected_res_buses_voltages = (
@@ -750,7 +733,7 @@ def test_load_flow_results_frames(small_network_with_results):
             "bus_id",
         )
     )
-    assert_frame_equal(en.res_buses_voltages, expected_res_buses_voltages, rtol=1e-5)
+    assert_frame_equal(en.res_buses, expected_res_buses_voltages, rtol=1e-5)
 
     # Transformers results
     expected_res_transformers = (
@@ -762,8 +745,8 @@ def test_load_flow_results_frames(small_network_with_results):
                 "current2",
                 "power1",
                 "power2",
-                "potential1",
-                "potential2",
+                "voltage1",
+                "voltage2",
                 "max_power",
                 "violated",
             ],
@@ -775,8 +758,8 @@ def test_load_flow_results_frames(small_network_with_results):
                 "current2": complex,
                 "power1": complex,
                 "power2": complex,
-                "potential1": complex,
-                "potential2": complex,
+                "voltage1": complex,
+                "voltage2": complex,
                 "max_power": float,
                 "violated": pd.BooleanDtype(),
             }
@@ -789,17 +772,14 @@ def test_load_flow_results_frames(small_network_with_results):
     expected_res_lines_records = [
         {
             "line_id": "line",
-            "current1": 0.00500 + 7.22799e-25j,
-            "current2": -0.00500 - 7.22799e-25j,
-            "power1": (20000 + 2.89120e-18j) * (0.00500 + 7.22799e-25j).conjugate(),
-            "power2": (19999.94999 + 2.89119e-18j) * (-0.00500 - 7.22799e-25j).conjugate(),
-            "potential1": 20000 + 2.89120e-18j,
-            "potential2": 19999.94999 + 2.89119e-18j,
-            "series_losses": (
-                (20000 + 2.89120e-18j) * (0.00500 + 7.22799e-25j).conjugate()
-                + (19999.94999 + 2.89119e-18j) * (-0.00500 - 7.22799e-25j).conjugate()
-            ),
-            "series_current": 0.00500 + 7.22799e-25j,
+            "current1": 0.008660318990723968,
+            "current2": -0.008660318990723968,
+            "power1": (20000 + 2.89120e-18j) / np.sqrt(3.0) * (0.008660318990723968 + 7.22799e-25j).conjugate() * 3.0,
+            "power2": 19999.94999 / np.sqrt(3.0) * (-0.008660318990723968 - 7.22799e-25j).conjugate() * 3.0,
+            "voltage1": 20000 + 2.89120e-18j,
+            "voltage2": 19999.94999 + 2.89119e-18j,
+            "series_losses": (0.002250033750656307 + 0j),
+            "series_current": 0.008660318990723968 + 7.22799e-25j,
             "max_current": np.nan,
             "violated": None,
         },
@@ -810,8 +790,8 @@ def test_load_flow_results_frames(small_network_with_results):
         "current2": complex,
         "power1": complex,
         "power2": complex,
-        "potential1": complex,
-        "potential2": complex,
+        "voltage1": complex,
+        "voltage2": complex,
         "series_losses": complex,
         "series_current": complex,
         "max_current": float,
@@ -844,8 +824,8 @@ def test_load_flow_results_frames(small_network_with_results):
                 "current2",
                 "power1",
                 "power2",
-                "potential1",
-                "potential2",
+                "voltage1",
+                "voltage2",
             ],
         )
         .astype(
@@ -855,8 +835,8 @@ def test_load_flow_results_frames(small_network_with_results):
                 "current2": complex,
                 "power1": complex,
                 "power2": complex,
-                "potential1": complex,
-                "potential2": complex,
+                "voltage1": complex,
+                "voltage2": complex,
             }
         )
         .set_index("switch_id")
@@ -870,9 +850,9 @@ def test_load_flow_results_frames(small_network_with_results):
                 {
                     "load_id": "load",
                     "type": "power",
-                    "current": 0.00500 + 7.22802e-25j,
-                    "power": (19999.94999 + 2.89119e-18j) * (0.00500 + 7.22802e-25j).conjugate(),
-                    "potential": 19999.94999 + 2.89119e-18j,
+                    "current": 0.008660318990723968 + 7.22802e-25j,
+                    "power": 19999.94999 / np.sqrt(3.0) * (0.008660318990723968).conjugate() * 3.0,
+                    "voltage": 19999.94999 + 2.89119e-18j,
                 },
             ]
         )
@@ -882,7 +862,7 @@ def test_load_flow_results_frames(small_network_with_results):
                 "type": LoadTypeDtype,
                 "current": complex,
                 "power": complex,
-                "potential": complex,
+                "voltage": complex,
             }
         )
         .set_index("load_id")
@@ -895,9 +875,9 @@ def test_load_flow_results_frames(small_network_with_results):
             [
                 {
                     "source_id": "vs",
-                    "current": -0.00500 + 0j,
-                    "power": (20000 + 2.89120e-18j) * (-0.00500 + 0j).conjugate(),
-                    "potential": 20000 + 2.89120e-18j,
+                    "current": -0.008660318990723968,
+                    "power": 20000 / np.sqrt(3.0) * (-0.008660318990723968 + 0j).conjugate() * 3.0,
+                    "voltage": 20000 + 2.89120e-18j,
                 }
             ]
         )
@@ -906,7 +886,7 @@ def test_load_flow_results_frames(small_network_with_results):
                 "source_id": object,
                 "current": complex,
                 "power": complex,
-                "potential": complex,
+                "voltage": complex,
             }
         )
         .set_index("source_id")
@@ -1149,7 +1129,7 @@ def test_results_to_dict(all_element_network_with_results):
     for res_bus in res_network["buses"]:
         bus = en.buses[res_bus["id"]]
         complex_potentials = res_bus["potential"][0] + 1j * res_bus["potential"][1]
-        np.testing.assert_allclose(complex_potentials, bus.res_potential.m)
+        np.testing.assert_allclose(complex_potentials, bus._res_potential)
     for res_line in res_network["lines"]:
         line = en.lines[res_line["id"]]
         complex_currents1 = res_line["current1"][0] + 1j * res_line["current1"][1]
@@ -1196,7 +1176,7 @@ def test_results_to_dict_full(all_element_network_with_results):
     for res_bus in res_network["buses"]:
         bus = en.buses[res_bus["id"]]
         complex_potentials = res_bus["potential"][0] + 1j * res_bus["potential"][1]
-        np.testing.assert_allclose(complex_potentials, bus.res_potential.m)
+        np.testing.assert_allclose(complex_potentials, bus._res_potential)
         complex_voltages = res_bus["voltage"][0] + 1j * res_bus["voltage"][1]
         np.testing.assert_allclose(complex_voltages, bus.res_voltage.m)
     for res_line in res_network["lines"]:
@@ -1206,11 +1186,6 @@ def test_results_to_dict_full(all_element_network_with_results):
         np.testing.assert_allclose(complex_currents1, line.res_currents[0].m)
         complex_currents2 = res_line["current2"][0] + 1j * res_line["current2"][1]
         np.testing.assert_allclose(complex_currents2, line.res_currents[1].m)
-        # Potentials
-        complex_potentials1 = res_line["potential1"][0] + 1j * res_line["potential1"][1]
-        np.testing.assert_allclose(complex_potentials1, line.res_potentials[0].m)
-        complex_potentials2 = res_line["potential2"][0] + 1j * res_line["potential2"][1]
-        np.testing.assert_allclose(complex_potentials2, line.res_potentials[1].m)
         # Powers
         complex_powers1 = res_line["power1"][0] + 1j * res_line["power1"][1]
         np.testing.assert_allclose(complex_powers1, line.res_powers[0].m)
@@ -1253,11 +1228,6 @@ def test_results_to_dict_full(all_element_network_with_results):
         np.testing.assert_allclose(complex_currents1, switch.res_currents[0].m)
         complex_currents2 = res_switch["current2"][0] + 1j * res_switch["current2"][1]
         np.testing.assert_allclose(complex_currents2, switch.res_currents[1].m)
-        # Potentials
-        complex_potentials1 = res_switch["potential1"][0] + 1j * res_switch["potential1"][1]
-        np.testing.assert_allclose(complex_potentials1, switch.res_potentials[0].m)
-        complex_potentials2 = res_switch["potential2"][0] + 1j * res_switch["potential2"][1]
-        np.testing.assert_allclose(complex_potentials2, switch.res_potentials[1].m)
         # Powers
         complex_powers1 = res_switch["power1"][0] + 1j * res_switch["power1"][1]
         np.testing.assert_allclose(complex_powers1, switch.res_powers[0].m)

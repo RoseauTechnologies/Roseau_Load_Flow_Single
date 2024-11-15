@@ -20,7 +20,7 @@ def generate_small_network() -> None:
 
     voltage = 20000.0 + 0.0j
     vs = rlfs.VoltageSource(id="vs", bus=source_bus, voltage=voltage)
-    load = rlfs.PowerLoad(id="load", bus=load_bus, power=100)
+    load = rlfs.PowerLoad(id="load", bus=load_bus, power=300)
 
     lp = rlfs.LineParameters(id="test", z_line=10)
     line = rlfs.Line(id="line", bus1=source_bus, bus2=load_bus, parameters=lp, length=1.0, geometry=line_string)
