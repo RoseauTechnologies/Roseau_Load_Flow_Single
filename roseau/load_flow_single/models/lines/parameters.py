@@ -5,11 +5,7 @@ import numpy as np
 from roseau.load_flow.models.lines.parameters import LineParameters as TriLineParameters
 from roseau.load_flow.typing import ComplexArrayLike2D, Id
 from roseau.load_flow.units import Q_, ureg_wraps
-from roseau.load_flow.utils import (
-    ConductorType,
-    InsulatorType,
-    LineType,
-)
+from roseau.load_flow.utils import ConductorType, InsulatorType, LineType
 
 logger = logging.getLogger(__name__)
 
