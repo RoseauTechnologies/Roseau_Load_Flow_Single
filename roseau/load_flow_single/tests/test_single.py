@@ -78,7 +78,7 @@ def test_single_transformer(three_phases_transformer_type):
     vs = rlfs.VoltageSource(id="vs", bus=source_bus, voltage=voltage)
     load = rlfs.PowerLoad(id="load", bus=load_bus, power=90e3 + 30e3j)
     tr = rlfs.TransformerParameters(
-        id="TP", type=three_phases_transformer_type, uhv=20e3, ulv=400, sn=630, z2=0.0005, ym=0.001
+        id="TP", type=three_phases_transformer_type, up=20e3, us=400, sn=630, z2=0.0005, ym=0.001
     )
     transformer = rlfs.Transformer(id="transformer", bus1=source_bus, bus2=load_bus, parameters=tr)
 
@@ -95,7 +95,7 @@ def test_single_transformer(three_phases_transformer_type):
     load_tri = rlf.PowerLoad(id="load", bus=load_bus_tri, powers=[30e3 + 10e3j, 30e3 + 10e3j, 30e3 + 10e3j])
 
     tr_tri = rlf.TransformerParameters(
-        id="TP", type=three_phases_transformer_type, uhv=20e3, ulv=400, sn=630, z2=0.0005, ym=0.001
+        id="TP", type=three_phases_transformer_type, up=20e3, us=400, sn=630, z2=0.0005, ym=0.001
     )
     transformer_tri = rlf.Transformer(id="transformer", bus1=source_bus_tri, bus2=load_bus_tri, parameters=tr_tri)
 

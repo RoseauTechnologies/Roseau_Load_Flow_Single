@@ -53,7 +53,7 @@ def generate_all_element_network(apl=None) -> None:
     line0 = rlfs.Line(id="line0", bus1=bus0, bus2=bus1, parameters=lp0, length=rlf.Q_(1.5, "km"))
 
     # Transformer between bus1 and bus2
-    tp0 = rlfs.TransformerParameters(id="630kVA", type="single", sn=630e3, uhv=20e3, ulv=400, z2=0.02, ym=1e-7)
+    tp0 = rlfs.TransformerParameters(id="630kVA", type="single", sn=630e3, up=20e3, us=400, z2=0.02, ym=1e-7)
     transformer0 = rlfs.Transformer(id="transformer0", bus1=bus1, bus2=bus2, parameters=tp0, tap=1.0)
 
     # Switch between the bus2 and the bus3

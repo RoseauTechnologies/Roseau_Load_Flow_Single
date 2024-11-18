@@ -77,7 +77,7 @@ def test_connect_and_disconnect():
 
     # Connection of a new connected component
     load_bus2 = Bus(id="load_bus2")
-    tp = TransformerParameters(id="630kVA", type="single", sn=630e3, uhv=20e3, ulv=400, z2=0.02, ym=1e-7)
+    tp = TransformerParameters(id="630kVA", type="single", sn=630e3, up=20e3, us=400, z2=0.02, ym=1e-7)
     Transformer(id="transfo", bus1=load_bus, bus2=load_bus2, parameters=tp)
 
     # Disconnection of a load
@@ -244,7 +244,7 @@ def test_bad_networks():
     # No potential reference
     bus3 = Bus(id="bus3")
     tp = TransformerParameters.from_open_and_short_circuit_tests(
-        id="t", type="single", uhv=20000, ulv=400, sn=160 * 1e3, p0=460, i0=2.3 / 100, psc=2350, vsc=4 / 100
+        id="t", type="single", up=20000, us=400, sn=160 * 1e3, p0=460, i0=2.3 / 100, psc=2350, vsc=4 / 100
     )
     t = Transformer(id="transfo", bus1=bus2, bus2=bus3, parameters=tp)
 

@@ -575,31 +575,39 @@ class ElectricalNetwork(JsonMixin):
         voltages_dict = {
             "bus_id": [],
             "voltage": [],
-            "min_voltage": [],
-            "max_voltage": [],
+            "voltage_level": [],
+            "min_voltage_level": [],
+            "max_voltage_level": [],
             "violated": [],
         }
         dtypes = {c: _DTYPES[c] for c in voltages_dict}
         for bus_id, bus in self.buses.items():
-            min_voltage = bus._min_voltage
-            max_voltage = bus._max_voltage
-            voltage_limits_set = False
+            nominal_voltage = bus._nominal_voltage
+            min_voltage_level = bus._min_voltage_level
+            max_voltage_level = bus._max_voltage_level
+            voltage_limits_set = (
+                min_voltage_level is not None or max_voltage_level is not None
+            ) and nominal_voltage is not None
 
-            if min_voltage is None:
-                min_voltage = float("nan")
-            else:
-                voltage_limits_set = True
-            if max_voltage is None:
-                max_voltage = float("nan")
-            else:
-                voltage_limits_set = True
+            if nominal_voltage is None:
+                nominal_voltage = float("nan")
+            if min_voltage_level is None:
+                min_voltage_level = float("nan")
+            if max_voltage_level is None:
+                max_voltage_level = float("nan")
             voltage = bus._res_voltage_getter(warning=False)
-            voltage_abs = abs(voltage)
-            violated = (voltage_abs < min_voltage or voltage_abs > max_voltage) if voltage_limits_set else None
+            if voltage_limits_set:
+                voltage_abs = abs(voltage)
+                voltage_level = voltage_abs / nominal_voltage
+            else:
+                violated = None
+                voltage_level = float("nan")
+            violated = voltage_level < min_voltage_level or voltage_level > max_voltage_level
             voltages_dict["bus_id"].append(bus_id)
             voltages_dict["voltage"].append(voltage)
-            voltages_dict["min_voltage"].append(min_voltage)
-            voltages_dict["max_voltage"].append(max_voltage)
+            voltages_dict["voltage_level"].append(voltage_level)
+            voltages_dict["min_voltage_level"].append(min_voltage_level)
+            voltages_dict["max_voltage_level"].append(max_voltage_level)
             voltages_dict["violated"].append(violated)
         return pd.DataFrame(voltages_dict).astype(dtypes).set_index("bus_id")
 
@@ -1003,7 +1011,7 @@ class ElectricalNetwork(JsonMixin):
             for e in element._connected_elements:
                 if e not in visited:
                     if isinstance(element, Transformer):
-                        k = element.parameters._ulv / element.parameters._uhv
+                        k = element.parameters._up / element.parameters._us
                         elements.append((e, potential * k, element))  # TODO dephasage
                         visited.add(e)
                     else:
