@@ -26,7 +26,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Physics",
 ]
-requires-python = ">=3.10,<4.0.0"
+requires-python = ">=3.10"
 dependencies = [
     "numpy>=1.21.5",
     "pandas>=1.4.0",
@@ -39,7 +39,7 @@ dependencies = [
     "certifi>=2023.5.7",
     "platformdirs>=4.0.0",
     "roseau-load-flow-engine>=0.16.0a",
-    "roseau-load-flow==0.10.0",
+    "roseau-load-flow>=0.10.0",
 ]
 
 [project.urls]
@@ -60,9 +60,6 @@ dev = [
     "coverage[toml]>=7.0.5",
     "coverage-conditional-plugin>=0.9.0",
 ]
-
-[tool.uv.sources]
-roseau-load-flow = { git = "ssh://git@github.com/RoseauTechnologies/Roseau_Load_Flow.git", branch = "develop" }
 
 [tool.uv]
 managed = true
