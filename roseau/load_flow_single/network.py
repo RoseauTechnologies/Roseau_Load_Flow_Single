@@ -599,10 +599,10 @@ class ElectricalNetwork(JsonMixin):
             if voltage_limits_set:
                 voltage_abs = abs(voltage)
                 voltage_level = voltage_abs / nominal_voltage
+                violated = voltage_level < min_voltage_level or voltage_level > max_voltage_level
             else:
                 violated = None
                 voltage_level = float("nan")
-            violated = voltage_level < min_voltage_level or voltage_level > max_voltage_level
             voltages_dict["bus_id"].append(bus_id)
             voltages_dict["voltage"].append(voltage)
             voltages_dict["voltage_level"].append(voltage_level)

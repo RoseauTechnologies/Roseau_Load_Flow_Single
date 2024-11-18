@@ -217,12 +217,7 @@ class PowerLoad(AbstractLoad):
     type: Final = "power"
 
     def __init__(
-        self,
-        id: Id,
-        bus: Bus,
-        *,
-        power: Complex,
-        flexible_param: FlexibleParameter | None = None,
+        self, id: Id, bus: Bus, *, power: Complex | Q_[Complex], flexible_param: FlexibleParameter | None = None
     ) -> None:
         """PowerLoad constructor.
 
@@ -361,7 +356,7 @@ class CurrentLoad(AbstractLoad):
 
     type: Final = "current"
 
-    def __init__(self, id: Id, bus: Bus, *, current: Complex) -> None:
+    def __init__(self, id: Id, bus: Bus, *, current: Complex | Q_[Complex]) -> None:
         """CurrentLoad constructor.
 
         Args:
@@ -403,13 +398,7 @@ class ImpedanceLoad(AbstractLoad):
 
     type: Final = "impedance"
 
-    def __init__(
-        self,
-        id: Id,
-        bus: Bus,
-        *,
-        impedance: Complex,
-    ) -> None:
+    def __init__(self, id: Id, bus: Bus, *, impedance: Complex | Q_[Complex]) -> None:
         """ImpedanceLoad constructor.
 
         Args:
