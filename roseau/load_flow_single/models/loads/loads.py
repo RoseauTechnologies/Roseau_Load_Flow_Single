@@ -4,13 +4,13 @@ from typing import ClassVar, Final, Literal
 
 import numpy as np
 
+from roseau.load_flow import FlexibleParameter
 from roseau.load_flow.exceptions import RoseauLoadFlowException, RoseauLoadFlowExceptionCode
 from roseau.load_flow.typing import Complex, Id, JsonDict
 from roseau.load_flow.units import Q_, ureg_wraps
 from roseau.load_flow_engine.cy_engine import CyAdmittanceLoad, CyCurrentLoad, CyFlexibleLoad, CyPowerLoad
 from roseau.load_flow_single.models.buses import Bus
 from roseau.load_flow_single.models.core import Element
-from roseau.load_flow_single.models.loads.flexible_parameters import FlexibleParameter
 
 logger = logging.getLogger(__name__)
 
