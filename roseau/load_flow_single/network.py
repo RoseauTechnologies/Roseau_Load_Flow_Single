@@ -1011,7 +1011,7 @@ class ElectricalNetwork(JsonMixin):
             for e in element._connected_elements:
                 if e not in visited:
                     if isinstance(element, Transformer):
-                        k = element.parameters._up / element.parameters._us
+                        k = element.parameters._us / element.parameters._up
                         elements.append((e, potential * k, element))  # TODO dephasage
                         visited.add(e)
                     else:

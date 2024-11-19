@@ -91,7 +91,7 @@ class Bus(Element):
     @potential.setter
     @ureg_wraps(None, (None, "V"))
     def potential(self, value: float) -> None:
-        self._potential = value
+        self._potential = value / np.sqrt(3.0)
         self._invalidate_network_results()
         self._initialized = True
         self._initialized_by_the_user = True
