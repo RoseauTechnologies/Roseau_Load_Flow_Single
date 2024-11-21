@@ -5,7 +5,7 @@ import numpy as np
 from roseau.load_flow.models.lines.parameters import LineParameters as TriLineParameters
 from roseau.load_flow.typing import ComplexArrayLike2D, Id
 from roseau.load_flow.units import Q_, ureg_wraps
-from roseau.load_flow.utils import ConductorType, InsulatorType, LineType
+from roseau.load_flow.utils import Material, Insulator, LineType
 
 logger = logging.getLogger(__name__)
 
@@ -19,11 +19,11 @@ class LineParameters(TriLineParameters):
         id: Id,
         z_line: complex | ComplexArrayLike2D,
         y_shunt: complex | ComplexArrayLike2D | None = None,
-        max_current: float | None = None,
+        max_currents: float | None = None,
         line_type: LineType | None = None,
-        conductor_type: ConductorType | None = None,
-        insulator_type: InsulatorType | None = None,
-        section: float | Q_[float] | None = None,
+        materials: Material | None = None,
+        insulators: Insulator | None = None,
+        sections: float | Q_[float] | None = None,
     ) -> None:
         """LineParameters constructor.
 
@@ -37,7 +37,7 @@ class LineParameters(TriLineParameters):
             y_shunt:
                 The Y matrix of the line (Siemens/km). This field is optional if the line has no shunt part.
 
-            max_current:
+            max_currents:
                 The maximum current loading of the line (A). The maximum current is optional, it is
                 not used in the load flow but can be used to check for overloading.
                 See also :meth:`Line.res_violated <roseau.load_flow.Line.res_violated>`.
@@ -48,14 +48,14 @@ class LineParameters(TriLineParameters):
                 automatically filled when the line parameters are created from a geometric model or
                 from the catalogue.
 
-            conductor_type:
-                The type of the conductor material (Aluminum, Copper, ...). The conductor type is
+            materials:
+                The type of the conductor material (Aluminum, Copper, ...). The material is
                 optional, it is informative only and is not used in the load flow. This field gets
                 automatically filled when the line parameters are created from a geometric model or
                 from the catalogue.
 
-            insulator_type:
-                The type of the cable insulator (PVC, XLPE, ...). The insulator type is optional,
+            insulators:
+                The type of the cable insulator (PVC, XLPE, ...). The insulator is optional,
                 it is informative only and is not used in the load flow. This field gets
                 automatically filled when the line parameters are created from a geometric model or
                 from the catalogue.
@@ -66,9 +66,9 @@ class LineParameters(TriLineParameters):
             id,
             z_line=z_line_tri,
             y_shunt=y_shunt_tri,
-            max_current=max_current,
+            max_currents=max_currents,
             line_type=line_type,
-            conductor_type=conductor_type,
-            insulator_type=insulator_type,
-            section=section,
+            materials=materials,
+            insulators=insulators,
+            sections=sections,
         )
