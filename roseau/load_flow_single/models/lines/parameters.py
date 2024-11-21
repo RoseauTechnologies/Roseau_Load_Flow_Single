@@ -19,7 +19,7 @@ class LineParameters(TriLineParameters):
         id: Id,
         z_line: complex | ComplexArrayLike2D,
         y_shunt: complex | ComplexArrayLike2D | None = None,
-        max_currents: float | None = None,
+        ampacities: float | None = None,
         line_type: LineType | None = None,
         materials: Material | None = None,
         insulators: Insulator | None = None,
@@ -37,8 +37,8 @@ class LineParameters(TriLineParameters):
             y_shunt:
                 The Y matrix of the line (Siemens/km). This field is optional if the line has no shunt part.
 
-            max_currents:
-                The maximum current loading of the line (A). The maximum current is optional, it is
+            ampacities:
+                The ampacities of the line (A). The ampacities are optional, they are
                 not used in the load flow but can be used to check for overloading.
                 See also :meth:`Line.res_violated <roseau.load_flow.Line.res_violated>`.
 
@@ -66,7 +66,7 @@ class LineParameters(TriLineParameters):
             id,
             z_line=z_line_tri,
             y_shunt=y_shunt_tri,
-            max_currents=max_currents,
+            ampacities=ampacities,
             line_type=line_type,
             materials=materials,
             insulators=insulators,
