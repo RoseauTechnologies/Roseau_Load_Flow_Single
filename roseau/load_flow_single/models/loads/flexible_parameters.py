@@ -7,7 +7,7 @@ from roseau.load_flow.exceptions import RoseauLoadFlowException, RoseauLoadFlowE
 from roseau.load_flow.models.loads.flexible_parameters import Control as TriControl
 from roseau.load_flow.models.loads.flexible_parameters import FlexibleParameter as TriFlexibleParameter
 from roseau.load_flow.models.loads.flexible_parameters import Projection
-from roseau.load_flow.typing import ControlType, ProjectionType
+from roseau.load_flow.typing import ComplexArray, ControlType, FloatArrayLike1D, ProjectionType
 from roseau.load_flow.units import Q_, ureg_wraps
 from roseau.load_flow_engine.cy_engine import CyControl, CyFlexibleParameter
 
@@ -623,3 +623,8 @@ class FlexibleParameter(TriFlexibleParameter):
             q_min=q_min,
             q_max=q_max,
         )
+
+    def _compute_powers(self, voltages: FloatArrayLike1D, power: complex) -> ComplexArray:
+        # Iterate over the provided voltages to get the associated flexible powers
+        res_flexible_powers = [self._cy_fp.compute_power(v / np.sqrt(3.0), power / 3.0) for v in voltages]
+        return np.array(res_flexible_powers, dtype=complex)

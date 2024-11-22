@@ -88,7 +88,7 @@ class Line(AbstractBranch):
         self._z_line = parameters._z_line[0][0] * length
         self._y_shunt = parameters._y_shunt[0][0] * length
         self._z_line_inv = 1.0 / self._z_line
-        self._yg = self._y_shunt.sum(axis=1)
+        self._yg = self._y_shunt
 
         if self._cy_element is not None:
             if self._parameters.with_shunt:

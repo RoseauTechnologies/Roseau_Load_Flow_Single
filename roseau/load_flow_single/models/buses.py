@@ -115,6 +115,14 @@ class Bus(Element):
         return self._res_voltage_getter(warning=True)
 
     @property
+    def res_voltage_level(self) -> Q_[float] | None:
+        """The load flow result of the bus voltage levels (unitless)."""
+        if self._nominal_voltage is None:
+            return None
+        voltages_abs = abs(self._res_voltage_getter(warning=True))
+        return Q_(voltages_abs / self._nominal_voltage, "")
+
+    @property
     def nominal_voltage(self) -> Q_[float] | None:
         """The phase-phase nominal voltage of the bus of the bus (V) if it is set."""
         return None if self._nominal_voltage is None else Q_(self._nominal_voltage, "V")
@@ -126,6 +134,7 @@ class Bus(Element):
             value = None
         if value is None:
             if self._max_voltage_level is not None or self._min_voltage_level is not None:
+                print("hey")
                 warnings.warn(
                     message=(
                         f"The nominal voltage of the bus {self.id!r} is required to use `min_voltage_level` and "
@@ -234,7 +243,7 @@ class Bus(Element):
         elif self._max_voltage_level is None:
             return voltage_level < self._min_voltage_level
         else:
-            return voltage_level < self._min_voltage_level or voltage > self._max_voltage_level
+            return voltage_level < self._min_voltage_level or voltage_level > self._max_voltage_level
 
     def propagate_limits(self, force: bool = False) -> None:
         """Propagate the voltage limits to galvanically connected buses.
@@ -253,8 +262,8 @@ class Bus(Element):
                 limits different from this bus. If ``True``, the limits are propagated even if
                 connected buses have different limits.
         """
-        from roseau.load_flow.models.lines import Line
-        from roseau.load_flow.models.switches import Switch
+        from roseau.load_flow_single.models.lines import Line
+        from roseau.load_flow_single.models.switches import Switch
 
         buses: set[Bus] = set()
         visited: set[Element] = set()
@@ -318,8 +327,8 @@ class Bus(Element):
 
         These are all the buses connected via one or more lines or switches to this bus.
         """
-        from roseau.load_flow.models.lines import Line
-        from roseau.load_flow.models.switches import Switch
+        from roseau.load_flow_single.models.lines import Line
+        from roseau.load_flow_single.models.switches import Switch
 
         visited_buses = {self.id}
         yield self.id

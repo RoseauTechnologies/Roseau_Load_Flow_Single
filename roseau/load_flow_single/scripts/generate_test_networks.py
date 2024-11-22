@@ -7,6 +7,7 @@ import roseau.load_flow as rlf
 import roseau.load_flow_single as rlfs
 
 TEST_NETWORKS_PATH = Path(resources.files("roseau.load_flow_single")) / "tests" / "data" / "networks"
+TEST_MODELS_PATH = Path(resources.files("roseau.load_flow_single")) / "models" / "tests" / "data"
 
 
 def generate_small_network() -> None:
@@ -35,6 +36,35 @@ def generate_small_network() -> None:
     )
     en.solve_load_flow()
     en.to_json(TEST_NETWORKS_PATH / "small_network.json")
+    en.to_json(TEST_MODELS_PATH / "small_network.json")
+
+
+def generate_small_shunt_network() -> None:
+    # Build a small network
+    point1 = Point(-1.318375372111463, 48.64794139348595)
+    point2 = Point(-1.320149235966572, 48.64971306653889)
+    line_string = LineString([point1, point2])
+
+    source_bus = rlfs.Bus(id="bus0", geometry=point1)
+    load_bus = rlfs.Bus(id="bus1", geometry=point2)
+
+    voltage = 20000.0 + 0.0j
+    vs = rlfs.VoltageSource(id="vs", bus=source_bus, voltage=voltage)
+    load = rlfs.PowerLoad(id="load", bus=load_bus, power=300)
+
+    lp = rlfs.LineParameters(id="test", z_line=10, y_shunt=0.01)
+    line = rlfs.Line(id="line", bus1=source_bus, bus2=load_bus, parameters=lp, length=1.0, geometry=line_string)
+
+    en = rlfs.ElectricalNetwork(
+        buses=[source_bus, load_bus],
+        lines=[line],
+        transformers=[],
+        switches=[],
+        loads=[load],
+        sources=[vs],
+    )
+    en.solve_load_flow()
+    en.to_json(TEST_MODELS_PATH / "small_shunt_network.json")
 
 
 def generate_all_element_network(apl=None) -> None:
@@ -135,4 +165,5 @@ def generate_all_element_network(apl=None) -> None:
 
 if __name__ == "__main__":
     generate_small_network()
+    generate_small_shunt_network()
     generate_all_element_network()
