@@ -1,5 +1,5 @@
 import logging
-from typing import Self
+from typing_extensions import Self
 
 import numpy as np
 
