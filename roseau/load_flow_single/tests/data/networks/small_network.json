@@ -30,6 +30,7 @@
       "bus2": "bus1",
       "length": 1.0,
       "params_id": "test",
+      "max_loading": 1.0,
       "geometry": {
         "type": "LineString",
         "coordinates": [
@@ -71,14 +72,7 @@
   "lines_params": [
     {
       "id": "test",
-      "z_line": [
-        [
-          [ 10.0]
-        ],
-        [
-          [ 0.0]
-        ]
-      ]
+      "z_line": [[[10.0]], [[0.0]]]
     }
   ],
   "transformers_params": []

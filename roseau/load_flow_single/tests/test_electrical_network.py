@@ -415,18 +415,20 @@ def test_buses_voltages(small_network_with_results):
         {
             "bus_id": "bus0",
             "voltage": 20000.0 + 0.0j,
+            "violated": False,
             "voltage_level": 1.0,
             "min_voltage_level": np.nan,
             "max_voltage_level": 1.05,
-            "violated": False,
+            "nominal_voltage": 20e3,
         },
         {
             "bus_id": "bus1",
             "voltage": 19999.949999875 + 0.0j,
+            "violated": True,
             "voltage_level": 0.99999749999375,
             "min_voltage_level": 1.0,
             "max_voltage_level": np.nan,
-            "violated": True,
+            "nominal_voltage": 20e3,
         },
     ]
 
@@ -447,14 +449,15 @@ def test_buses_voltages(small_network_with_results):
     )
 
     assert isinstance(buses_voltages, pd.DataFrame)
-    assert buses_voltages.shape == (2, 5)
+    assert buses_voltages.shape == (2, 6)
     assert buses_voltages.index.names == ["bus_id"]
     assert list(buses_voltages.columns) == [
         "voltage",
+        "violated",
         "voltage_level",
         "min_voltage_level",
         "max_voltage_level",
-        "violated",
+        "nominal_voltage",
     ]
     assert_frame_equal(buses_voltages, expected_buses_voltages, check_exact=False)
 
@@ -591,7 +594,7 @@ def test_network_results_warning(small_network, small_network_with_results, recw
             assert e.value.code == RoseauLoadFlowExceptionCode.LOAD_FLOW_NOT_RUN
         if load.is_flexible and isinstance(load, PowerLoad):
             with pytest.raises(RoseauLoadFlowException) as e:
-                _ = load.res_flexible_powers
+                _ = load.res_flexible_power
             assert e.value.code == RoseauLoadFlowExceptionCode.LOAD_FLOW_NOT_RUN
     for source in en.sources.values():
         for result_field_name in result_field_names_dict["sources"]:
@@ -626,7 +629,7 @@ def test_network_results_warning(small_network, small_network_with_results, recw
         for result_field_name in result_field_names_dict["loads"]:
             _ = getattr(load, result_field_name)
         if load.is_flexible and isinstance(load, PowerLoad):
-            _ = load.res_flexible_powers
+            _ = load.res_flexible_power
     for source in en.sources.values():
         for result_field_name in result_field_names_dict["sources"]:
             _ = getattr(source, result_field_name)
@@ -668,7 +671,7 @@ def test_network_results_warning(small_network, small_network_with_results, recw
                 _ = getattr(load, result_field_name)
         if load.is_flexible and isinstance(load, PowerLoad):
             with check_result_warning(expected_message=expected_message):
-                _ = load.res_flexible_powers
+                _ = load.res_flexible_power
     for source in en.sources.values():
         for result_field_name in result_field_names_dict["sources"]:
             with check_result_warning(expected_message=expected_message):
@@ -719,18 +722,20 @@ def test_load_flow_results_frames(small_network_with_results):
                 {
                     "bus_id": "bus0",
                     "voltage": (20000 + 2.89120e-18j) - (-1.34764e-12 + 2.89120e-18j),
+                    "violated": True,
                     "voltage_level": 1.0,
                     "min_voltage_level": 1.05,
                     "max_voltage_level": np.nan,
-                    "violated": True,
+                    "nominal_voltage": 20e3,
                 },
                 {
                     "bus_id": "bus1",
                     "voltage": (19999.94999 + 2.89119e-18j) - (0j),
+                    "violated": None,
                     "voltage_level": np.nan,
                     "min_voltage_level": np.nan,
                     "max_voltage_level": np.nan,
-                    "violated": None,
+                    "nominal_voltage": np.nan,
                 },
             ]
         )
@@ -742,6 +747,7 @@ def test_load_flow_results_frames(small_network_with_results):
                 "min_voltage_level": float,
                 "max_voltage_level": float,
                 "violated": pd.BooleanDtype(),
+                "nominal_voltage": float,
             }
         )
         .set_index(
@@ -762,8 +768,10 @@ def test_load_flow_results_frames(small_network_with_results):
                 "power2",
                 "voltage1",
                 "voltage2",
-                "max_power",
                 "violated",
+                "loading",
+                "max_loading",
+                "sn",
             ],
         )
         .astype(
@@ -775,8 +783,10 @@ def test_load_flow_results_frames(small_network_with_results):
                 "power2": complex,
                 "voltage1": complex,
                 "voltage2": complex,
-                "max_power": float,
+                "loading": float,
                 "violated": pd.BooleanDtype(),
+                "max_loading": float,
+                "sn": float,
             }
         )
         .set_index("transformer_id")
@@ -795,8 +805,10 @@ def test_load_flow_results_frames(small_network_with_results):
             "voltage2": 19999.94999 + 2.89119e-18j,
             "series_losses": (0.002250033750656307 + 0j),
             "series_current": 0.008660318990723968 + 7.22799e-25j,
-            "max_current": np.nan,
             "violated": None,
+            "loading": np.nan,
+            "max_loading": 1.0,
+            "ampacity": np.nan,
         },
     ]
     expected_res_lines_dtypes = {
@@ -809,8 +821,10 @@ def test_load_flow_results_frames(small_network_with_results):
         "voltage2": complex,
         "series_losses": complex,
         "series_current": complex,
-        "max_current": float,
         "violated": pd.BooleanDtype(),
+        "loading": float,
+        "max_loading": float,
+        "ampacity": float,
     }
     expected_res_lines = (
         pd.DataFrame.from_records(expected_res_lines_records).astype(expected_res_lines_dtypes).set_index("line_id")
@@ -818,9 +832,9 @@ def test_load_flow_results_frames(small_network_with_results):
     assert_frame_equal(en.res_lines, expected_res_lines, rtol=1e-4, atol=1e-5)
 
     # Lines with violated max current
-    en.lines["line"].parameters.max_current = 0.002
+    en.lines["line"].parameters.ampacities = 0.002
     expected_res_lines_violated_records = [
-        d | {"max_current": 0.002, "violated": True} for d in expected_res_lines_records
+        d | {"ampacity": 0.002, "violated": True, "loading": 4.3301594951117295} for d in expected_res_lines_records
     ]
     expected_res_violated_lines = (
         pd.DataFrame.from_records(expected_res_lines_violated_records)
@@ -1027,7 +1041,7 @@ def test_propagate_potentials():
     _ = ElectricalNetwork.from_element(source_bus)
     assert load_bus._initialized
     assert source_bus._initialized
-    expected_potentials = 20e3
+    expected_potentials = 20e3 / np.sqrt(3.0)
     assert np.allclose(load_bus.potential.m, expected_potentials)
     assert np.allclose(source_bus.potential.m, expected_potentials)
 
@@ -1261,10 +1275,6 @@ def test_results_to_dict_full(all_element_network_with_results):
         # Powers
         complex_powers = res_load["power"][0] + 1j * res_load["power"][1]
         np.testing.assert_allclose(complex_powers, load.res_power.m)
-        # Potentials
-        if "potentials" in res_load:
-            complex_potentials = res_load["potential"][0] + 1j * res_load["potential"][1]
-            np.testing.assert_allclose(complex_potentials, load.res_potential.m)
         # Flexible powers
         if "flexible_powers" in res_load:
             complex_flexible_powers = res_load["flexible_power"][0] + 1j * res_load["flexible_power"][1]
@@ -1277,10 +1287,6 @@ def test_results_to_dict_full(all_element_network_with_results):
         # Powers
         complex_powers = res_source["power"][0] + 1j * res_source["power"][1]
         np.testing.assert_allclose(complex_powers, source.res_power.m)
-        # Potentials
-        if "potentials" in res_source:
-            complex_potentials = res_source["potential"][0] + 1j * res_source["potential"][1]
-            np.testing.assert_allclose(complex_potentials, source.res_potential.m)
 
 
 def test_results_to_json(small_network_with_results, tmp_path):

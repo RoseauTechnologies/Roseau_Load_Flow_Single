@@ -27,6 +27,7 @@ class Transformer(AbstractBranch):
         *,
         parameters: TransformerParameters,
         tap: float = 1.0,
+        max_loading: float | Q_[float] = 1.0,
         geometry: BaseGeometry | None = None,
     ) -> None:
         """Transformer constructor.
@@ -44,6 +45,12 @@ class Transformer(AbstractBranch):
             tap:
                 The tap of the transformer, for example 1.02.
 
+            max_loading:
+                The maximum loading of the transformer (unitless). It is used with the `sn` of the
+                :class:`TransformerParameters` to compute the :meth:`~roseau.load_flow_single.Transformer.max_power`,
+                 :meth:`~roseau.load_flow_single.Transformer.res_loading` and
+                 :meth:`~roseau.load_flow_single.Transformer.res_violated` of the transformer.
+
             parameters:
                 Parameters defining the electrical model of the transformer. This is an instance of
                 the :class:`TransformerParameters` class and can be used by multiple transformers.
@@ -54,6 +61,7 @@ class Transformer(AbstractBranch):
         super().__init__(id=id, bus1=bus1, bus2=bus2, n=2, geometry=geometry)
         self.tap = tap
         self._parameters = parameters
+        self.max_loading = max_loading
 
         if parameters.type == "center":
             msg = "Center-tapped transformers are not allowed."
@@ -129,31 +137,63 @@ class Transformer(AbstractBranch):
             self._cy_element.update_transformer_parameters(z2, ym, k * self.tap)
 
     @property
+    @ureg_wraps("", (None,))
+    def max_loading(self) -> Q_[float]:
+        """The maximum loading of the transformer (unitless)"""
+        return self._max_loading
+
+    @max_loading.setter
+    @ureg_wraps(None, (None, ""))
+    def max_loading(self, value: float | Q_[float]) -> None:
+        if value <= 0:
+            msg = f"Maximum loading must be positive: {value} was provided."
+            logger.error(msg)
+            raise RoseauLoadFlowException(msg=msg, code=RoseauLoadFlowExceptionCode.BAD_MAX_LOADING_VALUE)
+        self._max_loading = value
+
+    @property
+    def sn(self) -> Q_[float]:
+        """The nominal power of the transformer (VA)."""
+        # Do not add a setter. The user must know that if they change the nominal power, it changes
+        # for all transformers that share the parameters. It is better to set it on the parameters.
+        return self._parameters.sn
+
+    @property
     def max_power(self) -> Q_[float] | None:
         """The maximum power loading of the transformer (in VA)."""
-        # Do not add a setter. The user must know that if they change the max_power, it changes
-        # for all transformers that share the parameters. It is better to set it on the parameters.
-        return self.parameters.max_power
+        sn = self.parameters._sn
+        return None if sn is None else Q_(sn * self._max_loading, "VA")
 
     @property
     @ureg_wraps("VA", (None,))
     def res_power_losses(self) -> Q_[complex]:
         """Get the total power losses in the transformer (in VA)."""
-        powers1, powers2 = self._res_powers_getter(warning=True)
-        return powers1 + powers2
+        power1, power2 = self._res_powers_getter(warning=True)
+        return power1 + power2
+
+    @property
+    def res_loading(self) -> Q_[float] | None:
+        """Get the loading of the transformer (unitless)."""
+        sn = self._parameters._sn
+        if sn is None:
+            return None
+        power1, power2 = self._res_powers_getter(warning=True)
+        s_max = sn * self._max_loading
+        return Q_(max(abs(power1), abs(power2)) / s_max, "")
 
     @property
     def res_violated(self) -> bool | None:
-        """Whether the transformer power exceeds the maximum power (loading > 100%).
+        """Whether the transformer power exceeds the maximum power (loading > max_loading).
 
         Returns ``None`` if the maximum power is not set.
         """
-        s_max = self.parameters._max_power
-        if s_max is None:
+        sn = self._parameters._sn
+        if sn is None:
             return None
-        powers1, powers2 = self._res_powers_getter(warning=True)
+        power1, power2 = self._res_powers_getter(warning=True)
+        s_max = sn * self._max_loading
         # True if either the primary or secondary is overloaded
-        return bool((abs(powers1.sum()) > s_max) or (abs(powers2.sum()) > s_max))
+        return abs(power1) > s_max or abs(power2) > s_max
 
     #
     # Json Mixin interface
@@ -162,6 +202,7 @@ class Transformer(AbstractBranch):
         res = super()._to_dict(include_results=include_results)
         res["tap"] = self.tap
         res["params_id"] = self.parameters.id
+        res["max_loading"] = self._max_loading
 
         return res
 

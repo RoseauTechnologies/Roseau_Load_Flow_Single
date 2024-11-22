@@ -1,7 +1,7 @@
 import logging
-from typing_extensions import Self
 
 import numpy as np
+from typing_extensions import Self
 
 from roseau.load_flow.exceptions import RoseauLoadFlowException, RoseauLoadFlowExceptionCode
 from roseau.load_flow.models.loads.flexible_parameters import Control as TriControl
@@ -232,6 +232,7 @@ class FlexibleParameter(TriFlexibleParameter):
         self._q_max_value = value
         if self._cy_fp is not None:
             self._cy_fp.update_parameters(self._s_max / 3.0, self._q_min / 3.0, self._q_max / 3.0)
+
     @classmethod
     def constant(cls) -> Self:
         """Build flexible parameters for a constant control with a Euclidean projection.

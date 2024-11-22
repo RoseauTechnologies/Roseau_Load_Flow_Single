@@ -567,18 +567,23 @@ class ElectricalNetwork(JsonMixin):
             - `bus_id`: The id of the bus.
 
         and the following columns:
-            - `voltage`: The complex voltage of the bus (in Volts).
-            - `min_voltage`: The minimum voltage of the bus (in Volts).
-            - `max_voltage`: The maximum voltage of the bus (in Volts).
+            - `voltage`: The complex voltage of the bus (in Volts) for the given phase.
+            - `violated`: `True` if a voltage limit is not respected.
+            - `voltage_level`: The voltage level of the bus.
+            - `min_voltage_level`: The minimal voltage level of the bus.
+            - `max_voltage_level`: The maximal voltage level of the bus.
+            - `nominal_voltage`: The nominal voltage of the bus (in Volts).
         """
         self._check_valid_results()
         voltages_dict = {
             "bus_id": [],
             "voltage": [],
+            "violated": [],
             "voltage_level": [],
+            # Non results
             "min_voltage_level": [],
             "max_voltage_level": [],
-            "violated": [],
+            "nominal_voltage": [],
         }
         dtypes = {c: _DTYPES[c] for c in voltages_dict}
         for bus_id, bus in self.buses.items():
@@ -605,10 +610,12 @@ class ElectricalNetwork(JsonMixin):
                 voltage_level = float("nan")
             voltages_dict["bus_id"].append(bus_id)
             voltages_dict["voltage"].append(voltage)
+            voltages_dict["violated"].append(violated)
             voltages_dict["voltage_level"].append(voltage_level)
+            # Non results
             voltages_dict["min_voltage_level"].append(min_voltage_level)
             voltages_dict["max_voltage_level"].append(max_voltage_level)
-            voltages_dict["violated"].append(violated)
+            voltages_dict["nominal_voltage"].append(nominal_voltage)
         return pd.DataFrame(voltages_dict).astype(dtypes).set_index("bus_id")
 
     @property
@@ -655,8 +662,11 @@ class ElectricalNetwork(JsonMixin):
             "voltage2": [],
             "series_losses": [],
             "series_current": [],
-            "max_current": [],
             "violated": [],
+            "loading": [],
+            # Non results
+            "max_loading": [],
+            "ampacity": [],
         }
         dtypes = {c: _DTYPES[c] for c in res_dict}
         for line in self.lines.values():
@@ -666,8 +676,17 @@ class ElectricalNetwork(JsonMixin):
             power1 = potential1 * current1.conjugate() * 3.0
             power2 = potential2 * current2.conjugate() * 3.0
             series_loss = du_line * series_current.conjugate() * 3.0
-            i_max = line.parameters._max_current
-            violated = None if i_max is None else (abs(current1) > i_max or abs(current2) > i_max)
+            max_loading = line._max_loading
+            ampacities = line.parameters._ampacities
+            if ampacities is None:
+                ampacity = None
+                loading = None
+                violated = None
+            else:
+                ampacity = ampacities[0]
+                i_max = ampacity * max_loading
+                loading = max(abs(current1), abs(current2)) / i_max
+                violated = loading > max_loading
             res_dict["line_id"].append(line.id)
             res_dict["current1"].append(current1)
             res_dict["current2"].append(current2)
@@ -677,8 +696,11 @@ class ElectricalNetwork(JsonMixin):
             res_dict["voltage2"].append(potential2 * np.sqrt(3.0))
             res_dict["series_losses"].append(series_loss)
             res_dict["series_current"].append(series_current)
-            res_dict["max_current"].append(i_max)
+            res_dict["loading"].append(loading)
             res_dict["violated"].append(violated)
+            # Non results
+            res_dict["max_loading"].append(max_loading)
+            res_dict["ampacity"].append(ampacity)
         return pd.DataFrame(res_dict).astype(dtypes).set_index("line_id")
 
     @property
@@ -706,8 +728,11 @@ class ElectricalNetwork(JsonMixin):
             "power2": [],
             "voltage1": [],
             "voltage2": [],
-            "max_power": [],
             "violated": [],
+            "loading": [],
+            # Non results
+            "max_loading": [],
+            "sn": [],
         }
         dtypes = {c: _DTYPES[c] for c in res_dict}
         for transformer in self.transformers.values():
@@ -715,8 +740,15 @@ class ElectricalNetwork(JsonMixin):
             potential1, potential2 = transformer._res_potentials_getter(warning=False)
             power1 = potential1 * current1.conjugate() * 3.0
             power2 = potential2 * current2.conjugate() * 3.0
-            s_max = transformer.parameters._max_power
-            violated = (abs(power1) > s_max or abs(power2) > s_max) if s_max is not None else None
+            sn = transformer.parameters._sn
+            max_loading = transformer._max_loading
+            if sn is None:
+                violated = None
+                loading = None
+            else:
+                s_max = sn * max_loading
+                loading = max(abs(power1), abs(power2)) / s_max
+                violated = loading > max_loading
             res_dict["transformer_id"].append(transformer.id)
             res_dict["current1"].append(current1)
             res_dict["current2"].append(current2)
@@ -724,8 +756,11 @@ class ElectricalNetwork(JsonMixin):
             res_dict["power2"].append(power2)
             res_dict["voltage1"].append(potential1 * np.sqrt(3.0))
             res_dict["voltage2"].append(potential2 * np.sqrt(3.0))
-            res_dict["max_power"].append(s_max)
             res_dict["violated"].append(violated)
+            res_dict["loading"].append(loading)
+            # Non results
+            res_dict["max_loading"].append(max_loading)
+            res_dict["sn"].append(sn)
         return pd.DataFrame(res_dict).astype(dtypes).set_index("transformer_id")
 
     @property

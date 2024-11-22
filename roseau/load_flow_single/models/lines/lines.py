@@ -25,6 +25,7 @@ class Line(AbstractBranch):
         *,
         parameters: LineParameters,
         length: float | Q_[float],
+        max_loading: float | Q_[float] = 1.0,
         geometry: BaseGeometry | None = None,
     ) -> None:
         """Line constructor.
@@ -47,6 +48,11 @@ class Line(AbstractBranch):
             length:
                 The length of the line (in km).
 
+            max_loading:
+                The maximum loading of the line (unitless).  It is not used in the load flow. It is used with the
+                `ampacities` of the :class:`LineParameters` to compute the
+                :meth:`~roseau.load_flow_single.Line.max_current` of the line.
+
             geometry:
                 The geometry of the line i.e. the linestring.
         """
@@ -55,6 +61,7 @@ class Line(AbstractBranch):
         super().__init__(id=id, bus1=bus1, bus2=bus2, n=1, geometry=geometry)
         self.length = length
         self.parameters = parameters
+        self.max_loading = max_loading
         self._initialized = True
 
         if parameters.with_shunt:
@@ -155,11 +162,35 @@ class Line(AbstractBranch):
         return self._parameters._y_shunt[0][0] * self._length
 
     @property
-    def max_current(self) -> Q_[float] | None:
-        """The maximum current loading of the line (in A)."""
-        # Do not add a setter. The user must know that if they change the max_current, it changes
+    @ureg_wraps("", (None,))
+    def max_loading(self) -> Q_[float]:
+        """The maximum loading of the line (unitless)"""
+        return self._max_loading
+
+    @max_loading.setter
+    @ureg_wraps(None, (None, ""))
+    def max_loading(self, value: float | Q_[float]) -> None:
+        if value <= 0:
+            msg = f"Maximum loading must be positive: {value} was provided."
+            logger.error(msg)
+            raise RoseauLoadFlowException(msg=msg, code=RoseauLoadFlowExceptionCode.BAD_MAX_LOADING_VALUE)
+        self._max_loading = value
+
+    @property
+    def ampacity(self) -> Q_[float] | None:
+        """The ampacity of the line (in A)."""
+        # Do not add a setter. The user must know that if they change the ampacity, it changes
         # for all lines that share the parameters. It is better to set it on the parameters.
-        return self._parameters.max_current
+        amp = self._parameters.ampacities
+        return amp[0] if amp is not None else None
+
+    @property
+    def max_current(self) -> Q_[float] | None:
+        """The maximum current of the line (in A). It takes into account the `max_loading` of the line and the
+        `ampacity` of the parameters."""
+        # Do not add a setter. Only `max_loading` can be altered by the user
+        amp = self._parameters._ampacities
+        return None if amp is None else Q_(amp[0] * self._max_loading, "A")
 
     @property
     def with_shunt(self) -> bool:
@@ -237,15 +268,27 @@ class Line(AbstractBranch):
         return self._res_power_losses_getter(warning=True)
 
     @property
-    def res_violated(self) -> bool | None:
-        """Whether the line current exceeds the maximum current (loading > 100%).
-
-        Returns ``None`` if the maximum current is not set.
-        """
-        i_max = self._parameters._max_current
-        if i_max is None:
+    def res_loading(self) -> Q_[float] | None:
+        """Get the loading of the line (unitless)."""
+        amp = self._parameters._ampacities
+        if amp is None:
             return None
         current1, current2 = self._res_currents_getter(warning=True)
+        i_max = amp[0] * self._max_loading
+        return Q_(max(abs(current1), abs(current2)) / i_max, "")
+
+    @property
+    def res_violated(self) -> bool | None:
+        """Whether the line current exceeds the maximal current of the line (computed with the parameters' ampacities
+        and the maximal loading of the line itself).
+
+        Returns ``None`` if the ampacities or the `max_loading` is not set are not set.
+        """
+        amp = self._parameters._ampacities
+        if amp is None:
+            return None
+        current1, current2 = self._res_currents_getter(warning=True)
+        i_max = amp[0] * self._max_loading
         return abs(current1) > i_max or abs(current2) > i_max
 
     #
@@ -258,6 +301,7 @@ class Line(AbstractBranch):
             "bus2": self.bus2.id,
             "length": self._length,
             "params_id": self._parameters.id,
+            "max_loading": self._max_loading,
         }
         if self.geometry is not None:
             res["geometry"] = self.geometry.__geo_interface__
